@@ -1,0 +1,4 @@
+tess_env/
+__pycache__/
+*.pyc
+trades.csv
