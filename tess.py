@@ -120,7 +120,17 @@ def get_recent_trades(n=10):
 # ── Position management ───────────────────────
 def get_price(pair):
     try:
-        return exchange.fetch_ticker(pair)["last"]
+        coin_map = {"ETH/USDT": "ethereum", "SOL/USDT": "solana"}
+        coin_id  = coin_map.get(pair)
+        if not coin_id:
+            return None
+        import requests
+        r = requests.get(
+            f"https://api.coingecko.com/api/v3/simple/price"
+            f"?ids={coin_id}&vs_currencies=usd",
+            timeout=10
+        )
+        return r.json()[coin_id]["usd"]
     except:
         return None
 

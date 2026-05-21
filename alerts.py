@@ -35,7 +35,8 @@ def send_email(subject, body):
 
         msg.attach(MIMEText(html, "html"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
             server.login(TESS_GMAIL, TESS_GMAIL_APP_PASSWORD)
             server.sendmail(TESS_GMAIL, YOUR_EMAIL, msg.as_string())
 
@@ -91,7 +92,7 @@ def alert_signal_skipped(pair, confidence, reason):
 Tess saw a setup but skipped it.
 
 Pair:        {pair}
-Confidence:  {confidence}% (needs 80% minimum)
+Confidence:  {confidence}% (needs 75% minimum)
 
 Why she skipped:
 {reason}
@@ -147,4 +148,3 @@ def test_alerts():
 
 
 test_alerts()
-
