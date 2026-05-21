@@ -9,7 +9,8 @@ import requests
 import json
 import time
 import pandas as pd
-from config import GROQ_API_KEY
+from config import GROQ_API_KEY, GROQ_API_KEY_2
+import random
 
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
 GECKO_URL   = "https://api.coingecko.com/api/v3"
@@ -240,8 +241,10 @@ Respond ONLY with a JSON object. No text outside JSON. No markdown.
 }}
 """
 
+    # Rotate between two keys to avoid rate limits
+    active_key = GROQ_API_KEY if random.random() > 0.5 else GROQ_API_KEY_2
     headers = {
-        "Authorization" : f"Bearer {GROQ_API_KEY}",
+        "Authorization" : f"Bearer {active_key}",
         "Content-Type"  : "application/json"
     }
 
@@ -261,9 +264,17 @@ Respond ONLY with a JSON object. No text outside JSON. No markdown.
         )
 
         if response.status_code == 429:
-            print("[Tess Brain] Groq rate limit — waiting 20 mins")
-            time.sleep(1200)
-            return None
+            print("[Tess Brain] Key 1 rate limited — switching to key 2")
+            # Try second key immediately
+            headers["Authorization"] = f"Bearer {GROQ_API_KEY_2}"
+            response = requests.post(
+                GROQ_URL, headers=headers,
+                json=payload, timeout=30
+            )
+            if response.status_code == 429:
+                print("[Tess Brain] Both keys limited — waiting 10 mins")
+                time.sleep(600)
+                return None
 
         if response.status_code != 200:
             print(

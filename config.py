@@ -12,6 +12,8 @@ DELTA_API_SECRET = "paste_your_secret_here"
 #GROQ_API_KEY
 GROQ_API_KEY = "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"
 
+GROQ_API_KEY_2 = "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"
+
 # --- Are we in paper mode or real mode? ---
 # ALWAYS start with True. Only change to False when you trust her.
 PAPER_MODE = True
