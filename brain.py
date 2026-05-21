@@ -21,6 +21,7 @@ COIN_IDS = {
 }
 
 def get_gecko_price(coin_id):
+    # Try CoinGecko first
     try:
         r = requests.get(
             f"{GECKO_URL}/simple/price",
@@ -32,14 +33,42 @@ def get_gecko_price(coin_id):
             },
             timeout=10
         )
+        if r.status_code == 200:
+            data = r.json()
+            if coin_id in data:
+                return {
+                    "price"      : data[coin_id]["usd"],
+                    "change_24h" : data[coin_id].get("usd_24h_change", 0),
+                    "volume_24h" : data[coin_id].get("usd_24h_vol", 0),
+                }
+    except Exception:
+        pass
+
+    # Fallback to Kraken
+    try:
+        kraken_map = {
+            "ethereum": "XETHZUSD",
+            "solana"  : "SOLUSD"
+        }
+        kraken_pair = kraken_map.get(coin_id)
+        if not kraken_pair:
+            return None
+        r = requests.get(
+            f"https://api.kraken.com/0/public/Ticker"
+            f"?pair={kraken_pair}",
+            timeout=10
+        )
         data = r.json()
+        result = list(data["result"].values())[0]
+        price  = float(result["c"][0])
+        print(f"[Tess Brain] Using Kraken fallback for {coin_id}: ${price}")
         return {
-            "price"      : data[coin_id]["usd"],
-            "change_24h" : data[coin_id].get("usd_24h_change", 0),
-            "volume_24h" : data[coin_id].get("usd_24h_vol", 0),
+            "price"      : price,
+            "change_24h" : 0,
+            "volume_24h" : float(result["v"][1]),
         }
     except Exception as e:
-        print(f"[Tess Brain] CoinGecko price error — {e}")
+        print(f"[Tess Brain] Both sources failed for {coin_id} — {e}")
         return None
 
 def get_gecko_candles(coin_id, days=1):
