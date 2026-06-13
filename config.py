@@ -33,7 +33,7 @@ TIMEFRAMES = ["15m", "1h", "4h"]  # 15 min, 1 hour, 4 hour candles
 
 # --- Email alerts ---
 TESS_GMAIL = "tessbot1352@gmail.com"
-TESS_GMAIL_APP_PASSWORD = "zdohidapzpgkupgt"
+TESS_GMAIL_APP_PASSWORD = "uswkamwndvfjcfhe"
 YOUR_EMAIL = "h.tess.receiver@gmail.com"
 
 # --- WhatsApp (we set this up together later) ---

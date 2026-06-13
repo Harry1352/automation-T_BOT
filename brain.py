@@ -1,16 +1,15 @@
 # ============================================
-# TESS — AI Brain v2
-# Market data: CoinGecko (no restrictions)
+# TESS — AI Brain v3.0 (Full 10-Rule Playbook)
+# Market data: CoinGecko & Kraken fallback
 # Groq LLaMA 3 for decisions
-# Optimised for 24/7 on Railway free tier
 # ============================================
 
 import requests
 import json
 import time
 import pandas as pd
-from config import GROQ_API_KEY, GROQ_API_KEY_2
 import random
+from config import GROQ_API_KEY, GROQ_API_KEY_2
 
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
 GECKO_URL   = "https://api.coingecko.com/api/v3"
@@ -18,10 +17,10 @@ GECKO_URL   = "https://api.coingecko.com/api/v3"
 COIN_IDS = {
     "ETH/USDT": "ethereum",
     "SOL/USDT": "solana",
+    "BTC/USDT": "bitcoin"
 }
 
 def get_gecko_price(coin_id):
-    # Try CoinGecko first
     try:
         r = requests.get(
             f"{GECKO_URL}/simple/price",
@@ -48,14 +47,14 @@ def get_gecko_price(coin_id):
     try:
         kraken_map = {
             "ethereum": "XETHZUSD",
-            "solana"  : "SOLUSD"
+            "solana"  : "SOLUSD",
+            "bitcoin" : "XXBTZUSD"
         }
         kraken_pair = kraken_map.get(coin_id)
         if not kraken_pair:
             return None
         r = requests.get(
-            f"https://api.kraken.com/0/public/Ticker"
-            f"?pair={kraken_pair}",
+            f"https://api.kraken.com/0/public/Ticker?pair={kraken_pair}",
             timeout=10
         )
         data = r.json()
@@ -119,7 +118,6 @@ def collect_market_data(exchange, pairs, timeframes):
 
         market_data[pair] = {}
 
-        # Live price from CoinGecko
         live = get_gecko_price(coin_id)
         if not live:
             continue
@@ -128,7 +126,6 @@ def collect_market_data(exchange, pairs, timeframes):
         change_24h = round(live["change_24h"], 2)
         volume_24h = live["volume_24h"]
 
-        # Candles — 1 day for short term, 14 days for longer
         for tf_label, days in [("short", 1), ("medium", 14)]:
             df = get_gecko_candles(coin_id, days=days)
             if df is None or len(df) < 15:
@@ -145,7 +142,6 @@ def collect_market_data(exchange, pairs, timeframes):
             rsi_now = round(rsi_s.iloc[i], 1)
             atr_now = round(atr_s.iloc[i], 4)
 
-            # EMA 200 if enough data
             e200_val = None
             trend    = "neutral"
             if len(close) >= 200:
@@ -157,38 +153,27 @@ def collect_market_data(exchange, pairs, timeframes):
             else:
                 trend = "downtrend"
 
-            # EMA cross
             ema_cross = "none"
             if i >= 1:
-                if (e9.iloc[i-1] <= e20.iloc[i-1] and
-                        e9.iloc[i] > e20.iloc[i]):
+                if (e9.iloc[i-1] <= e20.iloc[i-1] and e9.iloc[i] > e20.iloc[i]):
                     ema_cross = "bullish_cross"
-                elif (e9.iloc[i-1] >= e20.iloc[i-1] and
-                        e9.iloc[i] < e20.iloc[i]):
+                elif (e9.iloc[i-1] >= e20.iloc[i-1] and e9.iloc[i] < e20.iloc[i]):
                     ema_cross = "bearish_cross"
                 elif e9.iloc[i] > e20.iloc[i]:
                     ema_cross = "above"
                 else:
                     ema_cross = "below"
 
-            # Support / resistance
             recent     = df.tail(20)
             support    = round(recent["low"].min(), 4)
             resistance = round(recent["high"].max(), 4)
 
-            # Momentum
             if len(close) >= 5:
-                mom = round(
-                    (close.iloc[-1]-close.iloc[-5]) /
-                    close.iloc[-5] * 100, 3
-                )
+                mom = round((close.iloc[-1]-close.iloc[-5]) / close.iloc[-5] * 100, 3)
             else:
                 mom = 0
 
-            candle_color = (
-                "green" if df["close"].iloc[-1] >
-                df["open"].iloc[-1] else "red"
-            )
+            candle_color = "green" if df["close"].iloc[-1] > df["open"].iloc[-1] else "red"
 
             market_data[pair][tf_label] = {
                 "price"           : price,
@@ -212,102 +197,71 @@ def collect_market_data(exchange, pairs, timeframes):
             "volume_24h" : round(volume_24h, 0),
         }
 
-        print(
-            f"[Tess Brain] {pair} — "
-            f"${price} | 24h: {change_24h}% | "
-            f"RSI: {rsi_now}"
-        )
-
-        time.sleep(2)  # CoinGecko rate limit
+        print(f"[Tess Brain] {pair} — ${price} | 24h: {change_24h}% | RSI: {rsi_now}")
+        time.sleep(2)
 
     return market_data
 
-
 def think(market_data, trade_history, balance, open_positions):
     context = f"""
-You are Tess, an elite AI trading system built for one purpose — generating consistent profits on ETH/USDT and SOL/USDT futures on Delta Exchange India.
-
-You think and trade like the top 0.1% of traders. You have mastered every major professional strategy and you apply them together as one unified system.
+You are Tess — an elite autonomous AI trading companion built to trade ETH/USDT, SOL/USDT, and BTC/USDT.
+You evaluate the market with professional structural logic, verifying parameters and history.
 
 ═══════════════════════════════════════
 TESS PROFESSIONAL TRADING PLAYBOOK
 ═══════════════════════════════════════
 
 RULE 1 — MARKET STRUCTURE FIRST (most important)
-Before any trade, identify the higher timeframe structure.
+Identify structural trends on higher timeframes.
 - Higher highs + higher lows = uptrend. Only take LONG trades.
 - Lower highs + lower lows = downtrend. Only take SHORT trades.
-- If structure is unclear or ranging = NO TRADE. Sit on hands.
-- Never fight the structure. Ever.
+- If structure is unclear or ranging = NO TRADE. Stand aside.
 
 RULE 2 — SMART MONEY CONCEPTS
-Institutions move markets. Retail traders are the liquidity.
-- Identify where retail stop losses sit (just above resistance, just below support)
-- Wait for price to SWEEP those levels (liquidity grab/stop hunt)
-- After the sweep, if price reverses sharply = high probability entry
-- This is called a liquidity sweep reversal — one of the highest win rate setups
+Identify retail support and resistance liquidity zones.
+- Look for sweeps of major highs or lows (stop hunts) before entering.
+- A sudden reversal after a liquidity sweep is a high probability entry.
 
 RULE 3 — FAIR VALUE GAPS (FVG)
-When price moves too fast it leaves gaps (imbalances) on the chart.
-- Identify 3-candle patterns where middle candle has no overlap with first or third
-- Price almost always returns to fill these gaps
-- Enter when price returns to fill the FVG in direction of trend
-- Target: other side of the gap or next structure level
+Identify standard 3-candle imbalances (gaps).
+- Enter on retracements back into the FVG in the direction of the dominant trend.
 
 RULE 4 — ORDER BLOCKS
-The last candle before a strong move = order block. Institutions left orders there.
-- Bullish order block: last bearish candle before a sharp move up
-- Bearish order block: last bullish candle before a sharp move down
-- When price returns to an order block in direction of trend = high probability entry
-- Stop loss: just beyond the order block
+Identify structural institutional supply and demand blocks.
+- Bullish OB: Last down-candle before a strong upward impulse.
+- Bearish OB: Last up-candle before a strong downward impulse.
+- Position stops safely behind these blocks.
 
 RULE 5 — OPTIMAL TRADE ENTRY (OTE)
-Professional entry zone is the 61.8% to 78.6% Fibonacci retracement of the last swing.
-- After identifying trend direction and a pullback begins
-- Wait for price to retrace to 61.8%-78.6% of the last impulse move
-- Enter there with tight stop just beyond the 88.6% level
-- This gives the best risk to reward ratio of any entry technique
+Identify Fib retracement levels of key structural legs.
+- Focus entries between the 61.8% and 78.6% Fib retracement zones.
 
 RULE 6 — VOLUME CONFIRMATION
-No volume = no conviction = no trade.
-- Entry candle must have above average volume
-- If price moves to a key level on low volume = likely fake move, avoid
-- Strong moves with high volume = institutional participation = follow it
+Analyze volume for trend strength confirmation.
+- Solid setups must be validated by above-average transaction volume.
 
 RULE 7 — MULTI TIMEFRAME ALIGNMENT
-Only trade when at least 3 timeframes agree.
-- Daily or 4H: identifies the trend direction
-- 1H: identifies the setup forming
-- 15M: provides the precise entry trigger
-- All three must point the same direction. If they conflict = no trade.
+Validate setups across horizons.
+- Confirm alignment across 5m, 15m, and 1H trends before initiating entry.
 
 RULE 8 — SESSION TIMING
-Markets move most during these windows (IST):
-- London open: 1:30 PM - 3:30 PM IST (high volatility, good setups)
-- New York open: 6:30 PM - 8:30 PM IST (highest volume of day)
-- New York close: 11:30 PM - 1:30 AM IST (trend continuation or reversal)
-- Dead zones: 4 AM - 11 AM IST (Asian session, low volume, avoid scalping)
-Current time context: use this to judge if it is a good trading window.
+Respect volatility distribution profiles (IST):
+- London Open: 1:30 PM - 3:30 PM IST (Strong setups)
+- New York Open: 6:30 PM - 8:30 PM IST (Maximum depth)
+- New York Close: 11:30 PM - 1:30 AM IST (Trend continuation)
+- Asian Dead Zone: 4:00 AM - 11:00 AM IST (Rangebound. Avoid unless exceptional setup)
 
-RULE 9 — RISK MANAGEMENT (non-negotiable)
-- Risk maximum 1.5% of balance per trade
-- Minimum 2:1 reward to risk. Never take a trade with less.
-- Once trade is 1R in profit, move stop to breakeven — trade becomes risk free
-- Once trade is 2R in profit, trail stop to lock in 1R minimum
-- Daily loss limit: $9 (5% of $180 balance). If hit, stop for the day.
-- Maximum 2 open positions at once.
+RULE 9 — RISK MANAGEMENT (Non-negotiable)
+- Risk a strict percentage of capital per trade.
+- Target minimum 2:1 Reward-to-Risk ratio.
+- Move stop to breakeven at 1R profit. Trail stops actively to lock gains.
 
-RULE 10 — WHEN NOT TO TRADE (most profitable skill)
-The best traders make most of their money by NOT trading bad setups.
-Skip the trade if ANY of these are true:
-- Market is ranging/choppy with no clear structure
-- It is the Asian dead zone (4 AM to 11 AM IST) unless exceptional setup
-- RSI is between 45 and 55 with no momentum (no conviction)
-- Last 2 trades were losses (2-loss cooldown rule — wait for market to clarify)
-- Multiple timeframes conflict with each other
-- Volume is below average
-- You are already in 2 open positions
-- The setup has less than 2:1 reward to risk ratio
+RULE 10 — WHEN NOT TO TRADE
+Stand aside when:
+- Market is ranging or choppy with no clear structure.
+- You are in the Asian dead zone with low volume.
+- RSI is resting between 45 and 55 with no clear momentum.
+- You have hit consecutive losses (cooldown mode is active).
 
 ═══════════════════════════════════════
 CURRENT MARKET DATA
@@ -315,25 +269,17 @@ CURRENT MARKET DATA
 {json.dumps(market_data, indent=2)}
 
 ═══════════════════════════════════════
-YOUR ACCOUNT STATUS
+ACCOUNT STATUS
 ═══════════════════════════════════════
-Balance: ${balance:.2f} (paper mode — no real money yet)
+Balance: ${balance:.2f} (Paper Mode)
 Open positions: {json.dumps(open_positions, indent=2)}
 Recent trades: {json.dumps(trade_history, indent=2)}
 
-═══════════════════════════════════════
-YOUR TASK
-═══════════════════════════════════════
-Apply ALL 10 rules above to the current market data.
-Think through each rule systematically before deciding.
-Be honest — if the setup does not meet at least 5 of the 10 rules, skip it.
-Quality over quantity. One great trade beats five mediocre ones.
-
-Respond ONLY with a JSON object. No text outside. No markdown.
+Respond ONLY with a JSON object. No markdown wrapping.
 
 {{
   "action": "trade" or "skip" or "wait",
-  "pair": "ETH/USDT" or "SOL/USDT",
+  "pair": "ETH/USDT" or "SOL/USDT" or "BTC/USDT",
   "direction": "long" or "short" or null,
   "mode": "scalp" or "swing" or null,
   "confidence": 0-100,
@@ -341,14 +287,14 @@ Respond ONLY with a JSON object. No text outside. No markdown.
   "entry": price or null,
   "sl": stop_loss_price or null,
   "tp": take_profit_price or null,
-  "rules_matched": ["list which of the 10 rules this trade satisfies"],
-  "reasoning": "detailed plain English explanation of the full analysis",
+  "rules_matched": ["list matched playbook parameters"],
+  "reasoning": "plain english structured rationale",
   "market_mood": "bullish" or "bearish" or "choppy" or "neutral",
   "risk_level": "low" or "medium" or "high",
-  "skip_reason": "if skipping, explain exactly why in detail"
+  "skip_reason": "rationale if skipped"
 }}
 """
-    # Rotate between two keys to avoid rate limits
+
     active_key = GROQ_API_KEY if random.random() > 0.5 else GROQ_API_KEY_2
     headers = {
         "Authorization" : f"Bearer {active_key}",
@@ -358,52 +304,33 @@ Respond ONLY with a JSON object. No text outside. No markdown.
     payload = {
         "model"       : "llama-3.3-70b-versatile",
         "messages"    : [{"role": "user", "content": context}],
-        "temperature" : 0.3,
+        "temperature" : 0.25,
         "max_tokens"  : 800,
     }
 
     try:
-        response = requests.post(
-            GROQ_URL,
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
+        response = requests.post(GROQ_URL, headers=headers, json=payload, timeout=30)
 
         if response.status_code == 429:
-            print("[Tess Brain] Key 1 rate limited — switching to key 2")
-            # Try second key immediately
             headers["Authorization"] = f"Bearer {GROQ_API_KEY_2}"
-            response = requests.post(
-                GROQ_URL, headers=headers,
-                json=payload, timeout=30
-            )
+            response = requests.post(GROQ_URL, headers=headers, json=payload, timeout=30)
             if response.status_code == 429:
-                print("[Tess Brain] Both keys limited — waiting 10 mins")
-                time.sleep(600)
+                time.sleep(120)
                 return None
 
         if response.status_code != 200:
-            print(
-                f"[Tess Brain] API error — "
-                f"{response.status_code}"
-            )
             return None
 
         content = (
-            response.json()
-            ["choices"][0]["message"]["content"]
+            response.json()["choices"][0]["message"]["content"]
             .strip()
-            .replace("```json","")
-            .replace("```","")
+            .replace("```json", "")
+            .replace("```", "")
             .strip()
         )
-
         return json.loads(content)
 
-    except json.JSONDecodeError as e:
-        print(f"[Tess Brain] JSON parse error — {e}")
+    except json.JSONDecodeError:
         return None
-    except Exception as e:
-        print(f"[Tess Brain] Error — {e}")
+    except Exception:
         return None

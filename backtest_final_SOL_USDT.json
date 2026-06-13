@@ -1,0 +1,21 @@
+{
+  "pair": "SOL/USDT",
+  "timeframe": "1h",
+  "years": 5,
+  "leverage": 20,
+  "total_trades": 382,
+  "wins": 134,
+  "losses": 248,
+  "win_rate": 35.1,
+  "starting_balance": 16000.0,
+  "final_balance": 447166.85,
+  "total_pnl": 431166.85,
+  "avg_win": 20324.52,
+  "avg_loss": -9243.22,
+  "best_trade": 41992.01,
+  "worst_trade": -38712.49,
+  "max_drawdown_pct": 178.79,
+  "max_losing_streak": 11,
+  "profitable_months": 42,
+  "total_months": 64
+}

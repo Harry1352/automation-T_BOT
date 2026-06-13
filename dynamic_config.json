@@ -1,0 +1,10 @@
+{
+  "active_pairs": [
+    "XAUT/USDT",
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "LTC/USDT"
+  ],
+  "weekly_target_usd": 100
+}

@@ -1,0 +1,21 @@
+{
+  "pair": "ETH/USDT",
+  "timeframe": "1h",
+  "years": 5,
+  "leverage": 20,
+  "total_trades": 323,
+  "wins": 97,
+  "losses": 226,
+  "win_rate": 30.0,
+  "starting_balance": 16000.0,
+  "final_balance": -236688.66,
+  "total_pnl": -252688.66,
+  "avg_win": 19456.73,
+  "avg_loss": -9468.99,
+  "best_trade": 31489.68,
+  "worst_trade": -30218.92,
+  "max_drawdown_pct": 270.03,
+  "max_losing_streak": 14,
+  "profitable_months": 28,
+  "total_months": 62
+}

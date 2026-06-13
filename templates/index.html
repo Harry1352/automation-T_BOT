@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tess Cockpit Control</title>
+    <style>
+        :root {
+            --neon-cyan: #00f0ff;
+            --neon-dark: #070a13;
+            --card-bg: rgba(13, 18, 30, 0.9);
+            --border-color: #1e293b;
+        }
+
+        body {
+            background-color: var(--neon-dark);
+            color: #f8fafc;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 16px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            height: 45px;
+            flex-shrink: 0;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .glowing-circle {
+            width: 12px;
+            height: 12px;
+            background-color: var(--neon-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            letter-spacing: 2px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+        }
+
+        /* Master Cockpit Layout */
+        .cockpit-grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 16px;
+            flex-grow: 1;
+            min-height: 0; /* Ensures proper scrollbar behavior in columns */
+        }
+
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        /* General Card Style */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        /* Left Column Cards */
+        .chart-card {
+            height: 380px;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .ai-pipeline-card {
+            flex-grow: 1;
+            border: 1px solid #1e293b;
+            background: rgba(15, 23, 42, 0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .ai-pipeline-title {
+            color: var(--neon-cyan);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .ai-pipeline-text {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        /* Right Column Cards */
+        .balance-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .bal-card {
+            padding: 12px 16px;
+            text-align: center;
+        }
+
+        .bal-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .bal-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .bal-value.cyan {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+        }
+
+        .voice-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 20px;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.05);
+        }
+
+        .mic-button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--neon-dark);
+            border: 1px solid var(--neon-cyan);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .mic-button:hover, .mic-button.recording {
+            background: var(--neon-cyan);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .mic-button:hover svg, .mic-button.recording svg {
+            fill: var(--neon-dark);
+        }
+
+        .mic-button svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--neon-cyan);
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.4;
+            max-height: 40px;
+            overflow: hidden;
+        }
+
+        /* Tables */
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            border-left: 2px solid var(--neon-cyan);
+            padding-left: 8px;
+        }
+
+        .table-container {
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: rgba(30, 41, 59, 0.5);
+            color: #94a3b8;
+            font-size: 10px;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+        }
+
+        .clickable-row {
+            cursor: pointer;
+        }
+        .clickable-row:hover {
+            background: rgba(30, 41, 59, 0.3);
+        }
+
+        .pnl-green { color: #10b981; font-weight: bold;}
+        .pnl-red { color: #f43f5e; font-weight: bold;}
+    </style>
+</head>
+<body>
+    <div class="dashboard-container" style="height: 100%; display: flex; flex-direction: column;">
+        <header>
+            <div class="logo-area">
+                <div class="glowing-circle"></div>
+                <h1>TESS COCKPIT v11</h1>
+            </div>
+            <div style="font-size: 12px; color: #94a3b8;" id="system-time">00:00:00</div>
+        </header>
+
+        <!-- Master Grid -->
+        <div class="cockpit-grid">
+            <!-- Left Side: Chart + Strategy Pipeline -->
+            <div class="left-column">
+                <div class="glass-card chart-card">
+                    <div class="chart-header">
+                        <span style="color: #94a3b8; text-transform: uppercase;">Live Terminal</span>
+                        <span id="active-pair-display" style="font-weight: bold; color: var(--neon-cyan);">BINANCE:ETHUSDT</span>
+                    </div>
+                    <div id="tv-widget-container" style="height: 100%; width: 100%;"></div>
+                </div>
+
+                <div class="glass-card ai-pipeline-card">
+                    <div class="ai-pipeline-title">AI Decision Pipeline (Planned Trades)</div>
+                    <div class="ai-pipeline-text" id="ai-planned-text">Analyzing market snapshots...</div>
+                </div>
+            </div>
+
+            <!-- Right Side: Stats + Voice + Positions + Logs -->
+            <div class="right-column">
+                <!-- Balance Stats Row -->
+                <div class="balance-row">
+                    <div class="glass-card bal-card">
+                        <div class="bal-label">Tess Balance</div>
+                        <div class="bal-value cyan" id="balance-val">$0.00</div>
+                    </div>
+                    <div class="glass-card bal-card">
+                        <div class="bal-label">Rupee Equal (INR)</div>
+                        <div class="bal-value" id="balance-inr">₹0</div>
+                    </div>
+                </div>
+
+                <!-- Voice Assistant -->
+                <div class="glass-card voice-card">
+                    <div class="mic-button" id="mic-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12,14A3,3 0 0,0 15,11V5A3,3 0 0,0 12,2A3,3 0 0,0 9,5V11A3,3 0 0,0 12,14M17.3,11C17.3,14 14.76,16.1 12,16.1C9.24,16.1 6.7,14 6.7,11H5C5,14.41 7.72,17.23 11,17.72V21H13V17.72C16.28,17.23 19,14.41 19,11H17.3Z"/>
+                        </svg>
+                    </div>
+                    <div class="status-text" id="status-text">Click mic to converse with Tess...</div>
+                </div>
+
+                <!-- Active Positions -->
+                <div>
+                    <div class="section-title">Active Flights (Click to map chart)</div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Direction</th>
+                                    <th>Entry</th>
+                                    <th>TP</th>
+                                    <th>SL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-positions-body">
+                                <tr><td colspan="5" style="color: #94a3b8; text-align: center;">No active trades.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Compact past trades (Show last 3) -->
+                <div>
+                    <div class="section-title">Completed Logs (Last 3)</div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Dir</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-body">
+                                <tr><td colspan="5" style="color: #94a3b8; text-align: center;">Retrieving logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let currentSymbol = "BINANCE:ETHUSDT";
+        let tvWidget = null;
+
+        function initTradingViewWidget(symbol) {
+            document.getElementById('active-pair-display').innerText = symbol;
+            tvWidget = new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "15",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#0f172a",
+                "enable_publishing": false,
+                "hide_side_toolbar": true,
+                "allow_symbol_change": true,
+                "container_id": "tv-widget-container",
+                "studies": [
+                    "MASimple@tv-basicstudies",
+                    "RSI@tv-basicstudies"
+                ]
+            });
+        }
+
+        initTradingViewWidget(currentSymbol);
+
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('system-time').innerText = now.toLocaleTimeString() + ' | UTC';
+        }, 1000);
+
+        // Speech Recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechSynthesis = window.speechSynthesis;
+        let recognition = null;
+        let isRecording = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                document.getElementById('mic-btn').classList.add('recording');
+                document.getElementById('status-text').innerText = "Tess is listening...";
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                document.getElementById('mic-btn').classList.remove('recording');
+            };
+
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript;
+                document.getElementById('status-text').innerText = `You: "${command}"`;
+                sendVoiceCommand(command);
+            };
+        }
+
+        document.getElementById('mic-btn').addEventListener('click', () => {
+            if (!recognition) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+
+        async function sendVoiceCommand(textCommand) {
+            document.getElementById('status-text').innerText = "Analyzing...";
+            try {
+                const response = await fetch('/api/voice_command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: textCommand })
+                });
+                const data = await response.json();
+                document.getElementById('status-text').innerText = data.reply;
+                speakBack(data.reply);
+                updateDashboard();
+            } catch (e) {
+                document.getElementById('status-text').innerText = "Core offline.";
+            }
+        }
+
+        function speakBack(replyText) {
+            if (!SpeechSynthesis) return;
+            const cleanText = replyText.split('[CONFIG_UPDATE]')[0].trim();
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            const voices = SpeechSynthesis.getVoices();
+            const premiumVoice = voices.find(v => v.name.includes("Siri") || v.name.includes("Samantha") || v.name.includes("Google"));
+            if (premiumVoice) utterance.voice = premiumVoice;
+            utterance.pitch = 1.05;
+            utterance.rate = 1.05;
+            SpeechSynthesis.speak(utterance);
+        }
+
+        async function updateDashboard() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                // Balance
+                document.getElementById('balance-val').innerText = `$${data.balance.toFixed(2)}`;
+                document.getElementById('balance-inr').innerText = `₹${Math.round(data.balance * 85).toLocaleString()}`;
+
+                // Planned Trade Card
+                document.getElementById('ai-planned-text').innerText = data.next_planned;
+
+                // Active Positions
+                const activeBody = document.getElementById('active-positions-body');
+                if (Object.keys(data.positions).length > 0) {
+                    activeBody.innerHTML = '';
+                    for (const [pair, pos] of Object.entries(data.positions)) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'clickable-row';
+                        const tvSymbol = "BINANCE:" + pair.replace('/', '');
+                        tr.onclick = () => initTradingViewWidget(tvSymbol);
+                        tr.innerHTML = `
+                            <td><strong>${pair}</strong></td>
+                            <td class="${pos.direction === 'long' ? 'pnl-green' : 'pnl-red'}">${pos.direction.toUpperCase()}</td>
+                            <td>$${pos.entry.toFixed(2)}</td>
+                            <td>$${pos.tp.toFixed(2)}</td>
+                            <td>$${pos.sl.toFixed(2)}</td>
+                        `;
+                        activeBody.appendChild(tr);
+                    }
+                } else {
+                    activeBody.innerHTML = `<tr><td colspan="5" style="color: #94a3b8; text-align: center;">No active trades.</td></tr>`;
+                }
+
+                // History (Last 3)
+                const historyBody = document.getElementById('history-body');
+                if (data.trades.length > 0) {
+                    historyBody.innerHTML = '';
+                    // Limit to last 3 for clean fit on dashboard
+                    data.trades.slice(0, 3).forEach(t => {
+                        const tr = document.createElement('tr');
+                        const pnlNum = parseFloat(t.pnl);
+                        const pnlClass = pnlNum > 0 ? 'pnl-green' : (pnlNum < 0 ? 'pnl-red' : '');
+                        const pnlSign = pnlNum > 0 ? '+' : '';
+                        tr.innerHTML = `
+                            <td><strong>${t.pair}</strong></td>
+                            <td class="${t.direction === 'long' ? 'pnl-green' : 'pnl-red'}">${t.direction[0].toUpperCase()}</td>
+                            <td>$${parseFloat(t.entry).toFixed(1)}</td>
+                            <td>$${parseFloat(t.close).toFixed(1)}</td>
+                            <td class="${pnlClass}">${pnlSign}$${pnlNum.toFixed(1)}</td>
+                        `;
+                        historyBody.appendChild(tr);
+                    });
+                } else {
+                    historyBody.innerHTML = `<tr><td colspan="5" style="color: #94a3b8; text-align: center;">No completed trades found.</td></tr>`;
+                }
+            } catch (e) {
+                console.log("Stats poll error:", e);
+            }
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+        if (SpeechSynthesis) SpeechSynthesis.onvoiceschanged = () => {};
+    </script>
+</body>
+</html>

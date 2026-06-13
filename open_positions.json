@@ -1,0 +1,30 @@
+{
+  "XAUT/USDT": {
+    "entry": 4204.83,
+    "sl": 4180.0,
+    "tp": 4250.0,
+    "size": 0.10021617996446945,
+    "capital": 21.0696,
+    "leverage": 20,
+    "direction": "long",
+    "trade_type": "swing",
+    "entry_time": "2026-06-12T21:25:59.467345",
+    "breakeven_set": false,
+    "trailing_set": false,
+    "confidence": 80
+  },
+  "SOL/USDT": {
+    "entry": 66.98,
+    "sl": 66.8,
+    "tp": 67.2,
+    "size": 12.381059310942787,
+    "capital": 20.7320838161737,
+    "leverage": 40,
+    "direction": "long",
+    "trade_type": "scalp",
+    "entry_time": "2026-06-13T12:21:15.582212",
+    "breakeven_set": false,
+    "trailing_set": false,
+    "confidence": 70
+  }
+}
