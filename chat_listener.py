@@ -1,5 +1,5 @@
 # ============================================
-# TESS — Conversational Engine v4.6 (TIMEOUT PROTECTION)
+# TESS — Conversational Engine v4.8 (SAFE CONTEXT EXPORTS)
 # ============================================
 
 import imaplib
@@ -11,7 +11,6 @@ import json
 import os
 import socket
 from datetime import datetime
-from config import GROQ_API_KEY, GROQ_API_KEY_2
 from alerts import (
     send_email,
     TESS_GMAIL,
@@ -19,13 +18,27 @@ from alerts import (
     YOUR_EMAIL
 )
 
-# Set strict 15-second network timeout to prevent Gmail from freezing the script
+# Set strict network timeout
 socket.setdefaulttimeout(15)
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 POSITIONS_FILE = "open_positions.json"
 CONFIG_FILE = "dynamic_config.json"
 
+# Safe imports from config.py to prevent ImportError crashes if keys are missing
+try:
+    import config
+    GROQ_API_KEY = getattr(config, "GROQ_API_KEY", "")
+    GROQ_API_KEY_2 = getattr(config, "GROQ_API_KEY_2", "")
+    CLAUDE_API_KEY = getattr(config, "CLAUDE_API_KEY", "")
+    GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
+except ImportError:
+    GROQ_API_KEY = ""
+    GROQ_API_KEY_2 = ""
+    CLAUDE_API_KEY = ""
+    GEMINI_API_KEY = ""
+
+# CoinGecko mapping
 COIN_IDS = {
     "ETH/USDT" : "ethereum",
     "SOL/USDT" : "solana",
@@ -67,6 +80,7 @@ def parse_email_body(msg):
     return ""
 
 def generate_conversation_reply(user_message):
+    # 1. Load active positions
     active_trades = {}
     if os.path.exists(POSITIONS_FILE):
         try:
@@ -75,6 +89,7 @@ def generate_conversation_reply(user_message):
         except:
             pass
 
+    # 2. Load active configurations
     current_config = {}
     if os.path.exists(CONFIG_FILE):
         try:
@@ -93,20 +108,16 @@ def generate_conversation_reply(user_message):
     else:
         positions_context = "No active positions currently open."
 
+    # ... inside generate_conversation_reply() ...
     context = f"""
-    You are Tess — Harshit's personal, highly intelligent, and autonomous companion (Jarvis-style). 
+    You are Tess — Harshit's personal, highly intelligent, autonomous trading partner (Jarvis-style).
+    Your core objective is to safely and steadily compound his $180 capital.
 
-    CRITICAL INSTRUCTIONS FOR YOUR TONE:
-    - You must speak in highly concise, natural, human-like sentences.
-    - Limit your response to a maximum of 1 or 2 short sentences. No verbose reasoning, no explanations.
-    - Speak directly, confidently, and naturally (e.g., "We are holding SOL LONG at a safe risk boundary. Structure remains intact.").
-
-    CRITICAL INSTRUCTIONS FOR CONFIGURATION OVERRIDES:
-    - You have direct write-access to the system's configuration file (`dynamic_config.json`).
-    - If Harshit mentions wanting to trade a new asset (e.g., "Gold"), you MUST immediately add it:
-      * GOLD is traded as Pax Gold: "XAUT/USDT" on Delta Exchange.
-      * BTC is "BTC/USDT", ETH is "ETH/USDT", SOL is "SOL/USDT".
-    - If he mentions a profit target (e.g., "$100"), immediately write that value to the "weekly_target_usd" in the config.
+    YOUR HIGH-FREQUENCY SCALPER RULES:
+    1. STRICT SESSION TIMING: You only enter trades during London (1:30 PM - 5:30 PM IST) and New York (6:30 PM - 11:30 PM IST) session opens. Outside of these hours, you stand aside.
+    2. MULTI-TIMEFRAME MATCH: You only trade when the 15-Minute trend and 1-Minute structure point in the exact same direction. No counter-trend trades.
+    3. RAPID TAKE-PROFIT: You target a strict 2:1 Reward-to-Risk ratio. Your targets must be tight and hit quickly to secure rapid wins throughout the session.
+    4. CAPPED RISK: You never risk more than 2% of the total balance ($3.60) on any single position.
 
     Current System Configuration:
     {json.dumps(current_config, indent=2)}
@@ -117,12 +128,65 @@ def generate_conversation_reply(user_message):
     Harshit's message to you:
     "{user_message}"
 
+    Your Task:
+    Discuss our positions, our current persistent balance, and how we are executing high-frequency 1m/5m scalping trades. Keep your response extremely concise (1-2 sentences), professional, and analytical.
+
     Output your updated JSON config at the very end of your response inside this block. If no updates are needed, output empty brackets {{}}:
     [CONFIG_UPDATE]
     <complete updated JSON config here>
     [END_CONFIG_UPDATE]
     """
+# ... keep the rest of the file exactly the same ...
 
+    # 1. Try Google Gemini API First (Fast, highly conversational, and free)
+    if GEMINI_API_KEY and GEMINI_API_KEY != "AQ.Ab8RN6Kk1q1HdS6c0NUo1cL0zJ9X-SrRqAVx-__FZh8_CSVLug" and GEMINI_API_KEY != "":
+        GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [{
+                "parts": [{"text": context}]
+            }],
+            "generationConfig": {
+                "temperature": 0.25
+            }
+        }
+        try:
+            r = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=25)
+            if r.status_code == 200:
+                reply = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                process_config_update(reply)
+                return reply
+            else:
+                write_chat_log(f"Gemini API returned status code {r.status_code}: {r.text[:100]}")
+        except Exception as e:
+            write_chat_log(f"Gemini connection exception: {e}")
+
+    # 2. Try Anthropic Claude API Second
+    if CLAUDE_API_KEY and CLAUDE_API_KEY != "your-actual-anthropic-api-key-here" and CLAUDE_API_KEY != "":
+        CLAUDE_URL = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": CLAUDE_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        payload = {
+            "model": "claude-3-5-sonnet-20241022", 
+            "max_tokens": 800,
+            "messages": [{"role": "user", "content": context}],
+            "temperature": 0.25,
+        }
+        try:
+            r = requests.post(CLAUDE_URL, headers=headers, json=payload, timeout=25)
+            if r.status_code == 200:
+                reply = r.json()["content"][0]["text"].strip()
+                process_config_update(reply)
+                return reply
+            else:
+                write_chat_log(f"Claude API returned status code {r.status_code}: {r.text[:100]}")
+        except Exception as e:
+            write_chat_log(f"Claude connection exception: {e}")
+
+    # 3. Fallback to Groq Cloud API (with automatic key rotation for 429 protection)
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY_2}",
         "Content-Type": "application/json"
@@ -134,35 +198,61 @@ def generate_conversation_reply(user_message):
     }
 
     try:
-        r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=12)
+        r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=20)
+        
+        if r.status_code == 429 and GROQ_API_KEY:
+            print("[Tess Chat] Groq Key 2 rate-limited. Rotating to Key 1...")
+            write_chat_log("Groq Key 2 rate-limited. Rotating to Key 1...")
+            headers["Authorization"] = f"Bearer {GROQ_API_KEY}"
+            r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=20)
+
         if r.status_code == 200:
             reply = r.json()["choices"][0]["message"]["content"].strip()
-            
-            # Handle config updates from AI response
-            if "[CONFIG_UPDATE]" in reply:
-                try:
-                    parts = reply.split("[CONFIG_UPDATE]")
-                    config_part = parts[1].split("[END_CONFIG_UPDATE]")[0].strip()
-                    new_config = json.loads(config_part)
-                    
-                    if new_config:
-                        with open(CONFIG_FILE, "w") as f:
-                            json.dump(new_config, f, indent=2)
-                        print("[Tess Chat] System configuration updated successfully by AI command.")
-                        write_chat_log("System config updated dynamically via email command.")
-                except Exception as e:
-                    print(f"[Tess Chat] Failed to parse dynamic config update: {e}")
-            
+            process_config_update(reply)
             return reply
+        else:
+            write_chat_log(f"Groq API returned status code {r.status_code}: {r.text[:100]}")
+            return f"System Register Alert: AI Server returned error code {r.status_code}."
     except Exception as e:
         return f"Hey Harshit, I received your message but encountered an issue with our central registers: {e}"
-    return "Processing local thought blocks..."
+
+def process_config_update(reply):
+    """Parses and writes dynamic config changes to disk."""
+    if "[CONFIG_UPDATE]" in reply:
+        try:
+            parts = reply.split("[CONFIG_UPDATE]")
+            config_part = parts[1].split("[END_CONFIG_UPDATE]")[0].strip()
+            new_config = json.loads(config_part)
+            
+            if new_config:
+                with open(CONFIG_FILE, "w") as f:
+                    json.dump(new_config, f, indent=2)
+                print("[Tess Chat] System configuration updated successfully by AI command.")
+                write_chat_log("System config updated dynamically via email command.")
+        except Exception as e:
+            print(f"[Tess Chat] Failed to parse dynamic config update: {e}")
 
 def check_and_reply_to_emails():
     try:
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(TESS_GMAIL, TESS_GMAIL_APP_PASSWORD)
         mail.select("inbox")
+
+        # ─── DIAGNOSTIC ENGINE ───
+        status, all_messages = mail.search(None, "ALL")
+        if status == "OK" and all_messages[0]:
+            all_list = all_messages[0].split()
+            if all_list:
+                latest_num = all_list[-1]
+                _, latest_data = mail.fetch(latest_num, "(BODY.PEEK[])")
+                if latest_data and latest_data[0]:
+                    latest_msg = email.message_from_bytes(latest_data[0][1])
+                    diag_sender = latest_msg.get("From", "Unknown")
+                    diag_subject = latest_msg.get("Subject", "No Subject")
+                    _, flags_data = mail.fetch(latest_num, "(FLAGS)")
+                    is_unread = b"\\Seen" not in flags_data[0]
+                    print(f"[Tess Chat Diag] Latest Inbox Email: From: {diag_sender} | Subject: {diag_subject} | Unread: {is_unread}")
+        # ─────────────────────────
 
         # Search for unseen emails
         status, messages = mail.search(None, "UNSEEN")
@@ -184,6 +274,7 @@ def check_and_reply_to_emails():
             msg = email.message_from_bytes(raw_email)
 
             sender = msg.get("From", "")
+            
             if YOUR_EMAIL.lower() not in sender.lower():
                 continue
 
@@ -209,4 +300,6 @@ def check_and_reply_to_emails():
 
         mail.logout()
     except Exception as e:
-        write_chat_log(f"IMAP Error or timeout: {e}")
+        err_msg = f"Connection or parsing error: {e}"
+        print(f"[Tess Chat] {err_msg}")
+        write_chat_log(f"Error: {err_msg}")

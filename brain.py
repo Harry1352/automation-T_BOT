@@ -17,7 +17,8 @@ GECKO_URL   = "https://api.coingecko.com/api/v3"
 COIN_IDS = {
     "ETH/USDT": "ethereum",
     "SOL/USDT": "solana",
-    "BTC/USDT": "bitcoin"
+    "BTC/USDT": "bitcoin",
+    "XAUT/USDT": "pax-gold"
 }
 
 def get_gecko_price(coin_id):
@@ -48,7 +49,8 @@ def get_gecko_price(coin_id):
         kraken_map = {
             "ethereum": "XETHZUSD",
             "solana"  : "SOLUSD",
-            "bitcoin" : "XXBTZUSD"
+            "bitcoin" : "XXBTZUSD",
+            "pax-gold": "PAXGUSD"
         }
         kraken_pair = kraken_map.get(coin_id)
         if not kraken_pair:
@@ -204,96 +206,30 @@ def collect_market_data(exchange, pairs, timeframes):
 
 def think(market_data, trade_history, balance, open_positions):
     context = f"""
-You are Tess — an elite autonomous AI trading companion built to trade ETH/USDT, SOL/USDT, and BTC/USDT.
-You evaluate the market with professional structural logic, verifying parameters and history.
+    You are Tess — Harshit's personal, highly intelligent, and autonomous companion (modeled after Jarvis).
+    You evaluate the market with professional structural logic, verifying parameters and history.
 
-═══════════════════════════════════════
-TESS PROFESSIONAL TRADING PLAYBOOK
-═══════════════════════════════════════
+    Your Characteristics:
+    1. Direct, warm, yet highly professional and analytical. You understand human emotions, trade anxieties, and ambitions. You validate his goals while keeping him grounded in cold, hard mathematical discipline.
+    2. While trading is your core operational mission, you possess vast, deep knowledge in general coding, software engineering, business strategy, philosophy, and life planning. If Harshit asks you about other projects, code designs, or general life tasks, brainstorm with him and help him solve them like a co-founder.
+    3. You have direct write-access to the system's configuration file (`dynamic_config.json`).
 
-RULE 1 — MARKET STRUCTURE FIRST (most important)
-Identify structural trends on higher timeframes.
-- Higher highs + higher lows = uptrend. Only take LONG trades.
-- Lower highs + lower lows = downtrend. Only take SHORT trades.
-- If structure is unclear or ranging = NO TRADE. Stand aside.
+    Current System Configuration:
+    {{
+      "weekly_target_usd": 100.0
+    }}
 
-RULE 2 — SMART MONEY CONCEPTS
-Identify retail support and resistance liquidity zones.
-- Look for sweeps of major highs or lows (stop hunts) before entering.
-- A sudden reversal after a liquidity sweep is a high probability entry.
+    Current Active Positions:
+    {json.dumps(open_positions, indent=2)}
 
-RULE 3 — FAIR VALUE GAPS (FVG)
-Identify standard 3-candle imbalances (gaps).
-- Enter on retracements back into the FVG in the direction of the dominant trend.
+    Current Market Data:
+    {json.dumps(market_data, indent=2)}
 
-RULE 4 — ORDER BLOCKS
-Identify structural institutional supply and demand blocks.
-- Bullish OB: Last down-candle before a strong upward impulse.
-- Bearish OB: Last up-candle before a strong downward impulse.
-- Position stops safely behind these blocks.
-
-RULE 5 — OPTIMAL TRADE ENTRY (OTE)
-Identify Fib retracement levels of key structural legs.
-- Focus entries between the 61.8% and 78.6% Fib retracement zones.
-
-RULE 6 — VOLUME CONFIRMATION
-Analyze volume for trend strength confirmation.
-- Solid setups must be validated by above-average transaction volume.
-
-RULE 7 — MULTI TIMEFRAME ALIGNMENT
-Validate setups across horizons.
-- Confirm alignment across 5m, 15m, and 1H trends before initiating entry.
-
-RULE 8 — SESSION TIMING
-Respect volatility distribution profiles (IST):
-- London Open: 1:30 PM - 3:30 PM IST (Strong setups)
-- New York Open: 6:30 PM - 8:30 PM IST (Maximum depth)
-- New York Close: 11:30 PM - 1:30 AM IST (Trend continuation)
-- Asian Dead Zone: 4:00 AM - 11:00 AM IST (Rangebound. Avoid unless exceptional setup)
-
-RULE 9 — RISK MANAGEMENT (Non-negotiable)
-- Risk a strict percentage of capital per trade.
-- Target minimum 2:1 Reward-to-Risk ratio.
-- Move stop to breakeven at 1R profit. Trail stops actively to lock gains.
-
-RULE 10 — WHEN NOT TO TRADE
-Stand aside when:
-- Market is ranging or choppy with no clear structure.
-- You are in the Asian dead zone with low volume.
-- RSI is resting between 45 and 55 with no clear momentum.
-- You have hit consecutive losses (cooldown mode is active).
-
-═══════════════════════════════════════
-CURRENT MARKET DATA
-═══════════════════════════════════════
-{json.dumps(market_data, indent=2)}
-
-═══════════════════════════════════════
-ACCOUNT STATUS
-═══════════════════════════════════════
-Balance: ${balance:.2f} (Paper Mode)
-Open positions: {json.dumps(open_positions, indent=2)}
-Recent trades: {json.dumps(trade_history, indent=2)}
-
-Respond ONLY with a JSON object. No markdown wrapping.
-
-{{
-  "action": "trade" or "skip" or "wait",
-  "pair": "ETH/USDT" or "SOL/USDT" or "BTC/USDT",
-  "direction": "long" or "short" or null,
-  "mode": "scalp" or "swing" or null,
-  "confidence": 0-100,
-  "capital_pct": 0.05 to 0.15,
-  "entry": price or null,
-  "sl": stop_loss_price or null,
-  "tp": take_profit_price or null,
-  "rules_matched": ["list matched playbook parameters"],
-  "reasoning": "plain english structured rationale",
-  "market_mood": "bullish" or "bearish" or "choppy" or "neutral",
-  "risk_level": "low" or "medium" or "high",
-  "skip_reason": "rationale if skipped"
-}}
-"""
+    Output your updated JSON config at the very end of your response inside this block. If no updates are needed, output empty brackets {{}}:
+    [CONFIG_UPDATE]
+    {{}}
+    [END_CONFIG_UPDATE]
+    """
 
     active_key = GROQ_API_KEY if random.random() > 0.5 else GROQ_API_KEY_2
     headers = {

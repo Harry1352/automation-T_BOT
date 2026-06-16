@@ -1,5 +1,5 @@
 # ============================================
-# TESS — Unified Engine v11.2 (STABLE HOT-RELOAD)
+# TESS — Unified Engine v12.2 (UN-CRASHABLE PARSER)
 # ============================================
 
 import ccxt
@@ -29,7 +29,7 @@ PAPER_MODE         = True
 PAPER_BALANCE      = 180.0       # $180 USD = ~₹15,300 INR
 DAILY_LOSS_LIMIT   = 12.0        # Hard stop
 SOFT_LOSS_LIMIT    = 6.0         # Raise AI caution threshold
-REWARD_TO_RISK     = 2.5
+REWARD_TO_RISK     = 3.5         # Target 3.5x whatever we risk (3:1 to 4:1)
 SCAN_SECONDS       = 300         # 5 minutes scan interval
 PAIRS              = ["ETH/USDT", "SOL/USDT", "BTC/USDT", "XAUT/USDT"]  
 
@@ -45,6 +45,7 @@ PERF_FILE          = "performance.json"
 POSITIONS_FILE     = "open_positions.json"  
 CONFIG_FILE        = "dynamic_config.json"
 BALANCE_FILE       = "balance.json"         
+LESSONS_FILE       = "trade_lessons.json"   
 MAX_OPEN_POSITIONS = 2
 COOLDOWN_MINUTES   = 15
 TAKER_FEE_PCT      = 0.0005
@@ -60,6 +61,7 @@ daily_trades       = 0
 open_positions     = {}
 kill_switch_hit    = False
 last_report_day    = None
+last_daily_ledger_day = None 
 consecutive_losses = 0
 cooldown_until     = None
 last_day           = datetime.now().date()
@@ -69,52 +71,7 @@ next_planned_trade = "Analyzing markets to identify next optimal setup..."
 COIN_IDS   = {"ETH/USDT": "ethereum", "SOL/USDT": "solana", "BTC/USDT": "bitcoin", "XAUT/USDT": "pax-gold"}
 KRAKEN_IDS = {"ETH/USDT": "XETHZUSD", "SOL/USDT": "SOLUSD", "BTC/USDT": "XXBTZUSD", "XAUT/USDT": "PAXGUSD"}
 
-# ── Flask Server Definition ──────────────────
-app = Flask(__name__, template_folder="templates")
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/api/status")
-def get_status():
-    global paper_balance, open_positions, next_planned_trade
-    trades = []
-    if os.path.exists(LOG_FILE):
-        try:
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                trades = list(reader)[-5:] 
-                trades.reverse()
-        except:
-            pass
-
-    return jsonify({
-        "balance": paper_balance,
-        "positions": open_positions,
-        "trades": trades,
-        "next_planned": next_planned_trade
-    })
-
-@app.route("/api/voice_command", methods=["POST"])
-def voice_command():
-    from chat_listener import generate_conversation_reply
-    data = request.json
-    command = data.get("command", "")
-    if not command:
-        return jsonify({"reply": "I couldn't hear any command, Harshit."})
-    reply = generate_conversation_reply(command)
-    return jsonify({"reply": reply})
-
-def run_flask():
-    """Runs the web server in the main thread with Hot-Reload enabled."""
-    import logging
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR) 
-    print("[Tess Cockpit] Live dashboard active at: http://localhost:5000")
-    app.run(port=5000, host="0.0.0.0", use_reloader=True)
-
-# ── Logging & Persistence Engines ────────────
+# ── Logging & Persistence Helpers ────────────
 def write_thinking_log(message):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
@@ -122,6 +79,21 @@ def write_thinking_log(message):
             f.write(f"[{timestamp}] {message}\n")
     except Exception as e:
         print(f"Log write failed: {e}")
+
+def log_trade(pair, direction, entry, sl, tp, close, pnl, status, mode, reason):
+    exists = os.path.exists(LOG_FILE)
+    with open(LOG_FILE, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if not exists:
+            w.writerow(["time", "pair", "direction", "mode", "entry", "sl", "tp", "close", "pnl", "status", "reason"])
+        w.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            pair, direction, mode,
+            round(entry, 4), round(sl, 4), round(tp, 4),
+            round(close, 4) if close is not None else "",
+            round(pnl, 2)   if pnl   is not None else "",
+            status, reason.replace("\n", " ")
+        ])
 
 def save_balance():
     global paper_balance
@@ -173,6 +145,212 @@ def load_positions():
         open_positions = loaded
     except Exception as e:
         open_positions = {}
+
+def load_recent_trades(n=20):
+    if not os.path.exists(LOG_FILE):
+        return []
+    try:
+        df = pd.read_csv(LOG_FILE, on_bad_lines="skip")
+        closed = df[df["status"] == "closed"].tail(n)
+        return closed.to_dict("records")
+    except:
+        return []
+
+def save_performance():
+    if not os.path.exists(LOG_FILE):
+        return
+    try:
+        df     = pd.read_csv(LOG_FILE, on_bad_lines="skip")
+        closed = df[df["status"] == "closed"].copy()
+        closed["pnl"] = pd.to_numeric(closed["pnl"], errors="coerce")
+        closed = closed.dropna(subset=["pnl"])
+        if len(closed) == 0:
+            return
+        wins   = closed[closed["pnl"] > 0]
+        losses = closed[closed["pnl"] <= 0]
+        perf = {
+            "total_trades"    : len(closed),
+            "wins"            : len(wins),
+            "losses"          : len(losses),
+            "win_rate_pct"    : round(len(wins) / len(closed) * 100, 1),
+            "total_pnl"       : round(closed["pnl"].sum(), 2),
+            "current_balance" : round(paper_balance, 2),
+            "balance_inr"     : round(paper_balance * 85, 0),
+            "daily_trades"    : daily_trades,
+            "last_updated"    : datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+        with open(PERF_FILE, "w") as f:
+            json.dump(perf, f, indent=2)
+    except Exception as e:
+        print(f"[Tess] Performance save error — {e}")
+
+def maybe_morning_report():
+    global last_report_day
+    now = datetime.now()
+    if now.hour == 7 and now.minute < 6 and last_report_day != now.date():
+        last_report_day = now.date()
+        if not os.path.exists(LOG_FILE):
+            return
+        try:
+            df      = pd.read_csv(LOG_FILE, on_bad_lines="skip")
+            yest    = df[df["time"].str.startswith((now - timedelta(days=1)).strftime("%Y-%m-%d"))]
+            closed  = yest[yest["status"] == "closed"].copy()
+            closed["pnl"] = pd.to_numeric(closed["pnl"], errors="coerce")
+            closed  = closed.dropna(subset=["pnl"])
+            wins    = len(closed[closed["pnl"] > 0])
+            losses  = len(closed[closed["pnl"] <= 0])
+            pnl     = round(closed["pnl"].sum(), 2) if len(closed) > 0 else 0
+            watching = ", ".join(PAIRS)
+            alert_morning_report(pnl, len(closed), wins, losses, watching)
+        except:
+            pass
+
+def reflect_on_loss(pair, direction, entry, close, pnl, reason):
+    write_thinking_log(f"Initiating reflective analysis for loss on {pair}...")
+    try:
+        import config
+        GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
+    except ImportError:
+        return
+
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "AIzaSyYourKeyHere":
+        return
+
+    df = get_candles(pair, "15m", limit=30)
+    market_state = "No chart history"
+    if df is not None and len(df) >= 20:
+        market_state = f"Closing price: ${df['close'].iloc[-1]} | RSI: {round(float(calc_rsi(df['close']).iloc[-1]),1)}"
+
+    prompt = f"""
+    Act as an elite quantitative analyst and machine learning compiler.
+    We just closed a {direction.upper()} trade on {pair} at a LOSS of ${abs(pnl):.2f}.
+    
+    Trade Details:
+    - Entry Price: ${entry}
+    - Exit Price: ${close}
+    - Exit Reason: {reason}
+    - Technical Context: {market_state}
+
+    Task:
+    Analyze why this trade failed. Write a single, highly strict, one-sentence operational rule (in plain English) to prevent us from taking this exact losing trade setup again.
+    Do not write conversational filler, explanations, or introductory fluff. Only write the rule.
+    
+    Output format:
+    "Do not enter [asset] [direction] if [exact technical condition we must avoid]."
+    """
+
+    GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.15}
+    }
+
+    try:
+        r = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=30)
+        if r.status_code == 200:
+            lesson = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+            lessons = []
+            if os.path.exists(LESSONS_FILE):
+                try:
+                    with open(LESSONS_FILE, "r") as f:
+                        lessons = json.load(f)
+                except:
+                    pass
+            
+            lessons.append({
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "pair": pair,
+                "pnl": pnl,
+                "rule": lesson
+            })
+            lessons = lessons[-15:] 
+            with open(LESSONS_FILE, "w") as f:
+                json.dump(lessons, f, indent=2)
+            write_thinking_log(f"Reflective Learning complete. New rule hardcoded: '{lesson}'")
+    except Exception as e:
+        write_thinking_log(f"Error during reflective learning loop: {e}")
+
+def send_daily_ledger_email():
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    if not os.path.exists(LOG_FILE):
+        return
+
+    try:
+        df = pd.read_csv(LOG_FILE, on_bad_lines="skip")
+        today_trades = df[(df["status"] == "closed") & (df["time"].str.startswith(today_str))].copy()
+        
+        total_qty = len(today_trades)
+        today_trades["pnl"] = pd.to_numeric(today_trades["pnl"], errors="coerce")
+        today_trades = today_trades.dropna(subset=["pnl"])
+        
+        wins = len(today_trades[today_trades["pnl"] > 0])
+        losses = len(today_trades[today_trades["pnl"] <= 0])
+        win_rate = round(wins / total_qty * 100, 1) if total_qty > 0 else 0.0
+        
+        gross_profit = today_trades[today_trades["pnl"] > 0]["pnl"].sum()
+        gross_loss = abs(today_trades[today_trades["pnl"] <= 0]["pnl"].sum())
+        net_pnl = gross_profit - gross_loss
+        
+        subject = f"Tess End-of-Day Ledger — {now.strftime('%A, %d %B')} [PnL: {round(net_pnl,2):+f} USD]"
+        rows_html = ""
+        if total_qty > 0:
+            for _, t in today_trades.iterrows():
+                pnl_color = "#10b981" if t["pnl"] > 0 else "#f43f5e"
+                pnl_sign = "+" if t["pnl"] > 0 else ""
+                rows_html += f"""
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; font-weight: bold;">{t['pair']}</td>
+                    <td style="padding: 10px; text-transform: uppercase;">{t['direction']}</td>
+                    <td style="padding: 10px;">${float(t['entry']):,.2f}</td>
+                    <td style="padding: 10px;">${float(t['close']):,.2f}</td>
+                    <td style="padding: 10px; color: {pnl_color}; font-weight: bold;">{pnl_sign}${float(t['pnl']):,.2f}</td>
+                    <td style="padding: 10px; font-size: 11px; color: #666;">{t['reason']}</td>
+                </tr>
+                """
+        else:
+            rows_html = "<tr><td colspan='6' style='padding: 20px; text-align: center; color: #888;'>No trades executed today. Tess stood aside to protect capital.</td></tr>"
+
+        email_body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <div style="border-bottom: 2px solid #00f0ff; padding-bottom: 10px; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: #111;">Tess Flight Control Ledger</h2>
+                <div style="font-size: 12px; color: #888;">EOD Report · {now.strftime('%d %B %Y')}</div>
+            </div>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <div><strong>Total Executed:</strong> {total_qty} positions</div>
+                <div><strong>Win Rate:</strong> {win_rate}% ({wins}W / {losses}L)</div>
+                <div><strong>Gross Profit:</strong> ${gross_profit:,.2f}</div>
+                <div><strong>Gross Loss:</strong> ${gross_loss:,.2f}</div>
+                <div style="grid-column: span 2; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; font-size: 16px;">
+                    <strong>Net Daily P&L:</strong> <span style="color: {'#10b981' if net_pnl >= 0 else '#f43f5e'}; font-weight: bold;">{'+' if net_pnl >= 0 else ''}${net_pnl:,.2f} USD</span>
+                </div>
+                <div style="grid-column: span 2; font-size: 16px;">
+                    <strong>Persistent Closing Balance:</strong> <span style="font-weight: bold;">${paper_balance:,.2f} USD (~₹{paper_balance*85:,.0f} INR)</span>
+                </div>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px;">Today's Execution Logs</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                <thead>
+                    <tr style="background: #eee; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px;">Asset</th>
+                        <th style="padding: 10px;">Dir</th>
+                        <th style="padding: 10px;">Entry</th>
+                        <th style="padding: 10px;">Exit</th>
+                        <th style="padding: 10px;">P&L</th>
+                        <th style="padding: 10px;">Exit Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
+        </div>
+        """
+        send_email(subject, email_body)
+    except Exception as e:
+        write_thinking_log(f"Error compiling EOD Daily Ledger email: {e}")
 
 # ── Price & Candle Feeders ───────────────────
 def get_price(pair):
@@ -233,7 +411,6 @@ def calc_atr(df, period=14):
     return tr.rolling(period).mean()
 
 def calc_adx(df, period=14):
-    """Calculates Average Directional Index (ADX) to measure trend strength."""
     try:
         high = df["high"]
         low = df["low"]
@@ -256,7 +433,6 @@ def calc_adx(df, period=14):
 
 def build_market_snapshot(pair):
     snapshot = {"pair": pair}
-    
     for label, tf, limit in [("tf_5m", "5m", 100), ("tf_15m", "15m", 100), ("tf_1h", "1h", 100)]:
         df = get_candles(pair, tf, limit=limit)
         if df is None or len(df) < 30:
@@ -298,30 +474,24 @@ def build_market_snapshot(pair):
 
 # ── Fractional Risk Sizing Calculator ────────
 def calc_leverage_and_size(confidence, atr, price, balance, pair="ETH/USDT"):
-    # 1. Strictly cap risk at 2% of current persistent balance
     MAX_RISK_PCT = 0.02  
     max_risk_usd = round(balance * MAX_RISK_PCT, 2)
-    max_risk_usd = max(2.0, min(max_risk_usd, 6.0)) # Floor of $2, ceiling of $6
+    max_risk_usd = max(2.0, min(max_risk_usd, 6.0)) 
 
-    # 2. Stop Loss distance based on 1.2x ATR
     sl_dist = atr * 1.2
     if sl_dist <= 0:
         sl_dist = price * 0.015 
         
-    # 3. Calculate size backward: Size = Max Risk / SL Distance
     size = max_risk_usd / sl_dist
     position_value = size * price
     
-    # We deploy max 12% of balance as margin
     available_margin = balance * 0.12
     required_leverage = position_value / available_margin
     
-    # Clamp leverage
     rule = PAIR_RULES.get(pair, {"max_leverage": 40})
     max_lev = rule["max_leverage"]
     leverage = int(max(5, min(required_leverage, max_lev)))
     
-    # Finalize size based on clamped leverage
     size = (available_margin * leverage) / price
     
     true_max_loss = round(size * sl_dist, 2)
@@ -343,8 +513,22 @@ def ask_tess(market_snapshots, open_positions, balance, daily_pnl, recent_trades
             "reason"   : t.get("reason", "")[:60],
         })
 
+    lessons_context = ""
+    if os.path.exists(LESSONS_FILE):
+        try:
+            with open(LESSONS_FILE, "r") as f:
+                lessons_list = json.load(f)
+            if lessons_list:
+                lessons_context = "\n══════════════════════════════════════\nCOGNITIVE MEMORY: LESSONS FROM PAST FAILURES\n══════════════════════════════════════\n"
+                for idx, l in enumerate(lessons_list, 1):
+                    lessons_context += f"{idx}. {l['rule']} (Closed in loss of ${abs(l['pnl']):.2f})\n"
+        except:
+            pass
+
     prompt = f"""You are Tess, an autonomous AI trading companion.
-Analyze these indicators across 3 timeframes (5m, 15m, 1h) and output trading actions.
+Analyze these indicators across 3 timeframes (5m, 15m, 1h) and output trading decisions.
+
+{lessons_context}
 
 ══════════════════════════════════════
 ACCOUNT STATUS
@@ -367,6 +551,7 @@ Think systematically:
 1. Ensure the trend on 5m, 15m, and 1h is aligned. No counter-trend trades.
 2. If scalp mode is chosen, the target must easily cover fees.
 3. If past history shows repeated losses on a specific asset today, stand aside.
+4. Strictly obey our COGNITIVE MEMORY. If a setup violates any lesson, skip it.
 
 Output format MUST be raw JSON:
 {{
@@ -384,6 +569,43 @@ Output format MUST be raw JSON:
   ]
 }}"""
 
+    # 1. Try Google Gemini Pro First
+    try:
+        import config
+        GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
+    except ImportError:
+        GEMINI_API_KEY = ""
+
+    if GEMINI_API_KEY and GEMINI_API_KEY != "AIzaSyYourKeyHere" and GEMINI_API_KEY != "":
+        GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }],
+            "generationConfig": {
+                "temperature": 0.1,  
+                "responseMimeType": "application/json" 
+            }
+        }
+        try:
+            r = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=35)
+            if r.status_code == 200:
+                raw = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                raw = raw.replace("```json", "").replace("```", "").strip()
+                parsed = json.loads(raw)
+                
+                decision = parsed.get("decisions", [{}])[0]
+                if decision.get("action") == "skip":
+                    next_planned_trade = f"Market Scan: Standby. Skipping entries due to: {decision.get('reasoning')[:100]}..."
+                else:
+                    next_planned_trade = f"Planned Setup: {decision.get('trade_type','').upper()} {decision.get('pair')} {decision.get('action','').upper()} | Confidence: {decision.get('confidence')}%"
+
+                return parsed
+        except Exception as e:
+            write_thinking_log(f"Gemini Pro Trading Engine error: {e}")
+
+    # 2. Fallback to Groq if Gemini fails
     headers = {"Authorization": f"Bearer {GROQ_API_KEY_2}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -391,7 +613,6 @@ Output format MUST be raw JSON:
         "temperature": 0.25,
         "max_tokens": 1200,
     }
-
     try:
         r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=35)
         if r.status_code == 200:
@@ -399,7 +620,6 @@ Output format MUST be raw JSON:
             raw = raw.replace("```json", "").replace("```", "").strip()
             parsed = json.loads(raw)
             
-            # Update planned trades on dashboard
             decision = parsed.get("decisions", [{}])[0]
             if decision.get("action") == "skip":
                 next_planned_trade = f"Market Scan: Standby. Skipping entries due to: {decision.get('reasoning')[:100]}..."
@@ -408,62 +628,8 @@ Output format MUST be raw JSON:
 
             return parsed
     except Exception as e:
-        write_thinking_log(f"Cloud AI connection issue: {e}")
+        write_thinking_log(f"Groq Trading Engine Fallback error: {e}")
     return None
-
-# ── Logging Implementation ───────────────────
-def log_trade(pair, direction, entry, sl, tp, close, pnl, status, mode, reason):
-    exists = os.path.exists(LOG_FILE)
-    with open(LOG_FILE, "a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        if not exists:
-            w.writerow(["time", "pair", "direction", "mode", "entry", "sl", "tp", "close", "pnl", "status", "reason"])
-        w.writerow([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            pair, direction, mode,
-            round(entry, 4), round(sl, 4), round(tp, 4),
-            round(close, 4) if close is not None else "",
-            round(pnl, 2)   if pnl   is not None else "",
-            status, reason.replace("\n", " ")
-        ])
-
-def load_recent_trades(n=20):
-    if not os.path.exists(LOG_FILE):
-        return []
-    try:
-        df = pd.read_csv(LOG_FILE, on_bad_lines="skip")
-        closed = df[df["status"] == "closed"].tail(n)
-        return closed.to_dict("records")
-    except:
-        return []
-
-def save_performance():
-    if not os.path.exists(LOG_FILE):
-        return
-    try:
-        df     = pd.read_csv(LOG_FILE, on_bad_lines="skip")
-        closed = df[df["status"] == "closed"].copy()
-        closed["pnl"] = pd.to_numeric(closed["pnl"], errors="coerce")
-        closed = closed.dropna(subset=["pnl"])
-        if len(closed) == 0:
-            return
-        wins   = closed[closed["pnl"] > 0]
-        losses = closed[closed["pnl"] <= 0]
-        perf = {
-            "total_trades"    : len(closed),
-            "wins"            : len(wins),
-            "losses"          : len(losses),
-            "win_rate_pct"    : round(len(wins) / len(closed) * 100, 1),
-            "total_pnl"       : round(closed["pnl"].sum(), 2),
-            "current_balance" : round(paper_balance, 2),
-            "balance_inr"     : round(paper_balance * 85, 0),
-            "daily_trades"    : daily_trades,
-            "last_updated"    : datetime.now().strftime("%Y-%m-%d %H:%M"),
-        }
-        with open(PERF_FILE, "w") as f:
-            json.dump(perf, f, indent=2)
-    except Exception as e:
-        print(f"[Tess] Performance save error — {e}")
 
 # ── Position Execution Management ────────────
 def enter_trade(pair, direction, sl, tp, confidence, reasoning, trade_type, ai_entry_price):
@@ -542,7 +708,6 @@ def check_open_positions():
 
         unreal = (price - entry) * size if direction == "long" else (entry - price) * size
 
-        # Breakeven Lock at $2.00 unrealized profit
         if not pos["breakeven_set"] and unreal >= 2.0:
             open_positions[pair]["sl"] = entry
             open_positions[pair]["breakeven_set"] = True
@@ -550,7 +715,6 @@ def check_open_positions():
             save_positions()
             write_thinking_log(f"Locked trade at breakeven for {pair}")
 
-        # Trail Lock at $5.00 unrealized profit
         if pos["breakeven_set"] and not pos["trailing_set"] and unreal >= 5.0:
             trail_sl = (
                 round(price - (price - entry) * 0.35, 4) if direction == "long"
@@ -561,7 +725,6 @@ def check_open_positions():
             sl = trail_sl
             save_positions()
 
-        # Update trailing every scan
         if pos["trailing_set"]:
             if direction == "long":
                 new_sl = round(price - (price - entry) * 0.35, 4)
@@ -576,11 +739,9 @@ def check_open_positions():
                     sl = new_sl
                     save_positions()
 
-        # Dynamic exit protections
         fees_approx = capital * leverage * TAKER_FEE_PCT * 2
         net_now = unreal - fees_approx
 
-        # 14-Minute exit rule ONLY applies to low-profit stagnant scalps:
         force_scalp_exit = (
             trade_type == "scalp"
             and elapsed >= 840
@@ -599,6 +760,10 @@ def check_open_positions():
             if pnl < 0:
                 daily_loss += abs(pnl)
                 consecutive_losses += 1
+                
+                # Dynamic Reflective Machine Learning
+                reflect_thread = threading.Thread(target=reflect_on_loss, args=(pair, direction, entry, price, pnl, reason))
+                reflect_thread.start()
             else:
                 daily_profit += pnl
                 consecutive_losses = 0
@@ -622,31 +787,10 @@ def check_open_positions():
                 kill_switch_hit = True
                 alert_kill_switch(daily_loss, DAILY_LOSS_LIMIT)
 
-def maybe_morning_report():
-    global last_report_day
-    now = datetime.now()
-    if now.hour == 7 and now.minute < 6 and last_report_day != now.date():
-        last_report_day = now.date()
-        if not os.path.exists(LOG_FILE):
-            return
-        try:
-            df      = pd.read_csv(LOG_FILE, on_bad_lines="skip")
-            yest    = df[df["time"].str.startswith((now - timedelta(days=1)).strftime("%Y-%m-%d"))]
-            closed  = yest[yest["status"] == "closed"].copy()
-            closed["pnl"] = pd.to_numeric(closed["pnl"], errors="coerce")
-            closed  = closed.dropna(subset=["pnl"])
-            wins    = len(closed[closed["pnl"] > 0])
-            losses  = len(closed[closed["pnl"] <= 0])
-            pnl     = round(closed["pnl"].sum(), 2) if len(closed) > 0 else 0
-            watching = ", ".join(PAIRS)
-            alert_morning_report(pnl, len(closed), wins, losses, watching)
-        except:
-            pass
-
 # ── Main Run Loop ────────────────────────────
 def run():
     global kill_switch_hit, daily_loss, daily_profit, daily_trades, last_day, scan_count, cooldown_until, consecutive_losses
-    global PAIRS, PAIR_RULES, MAX_OPEN_POSITIONS  
+    global PAIRS, PAIR_RULES, MAX_OPEN_POSITIONS, last_daily_ledger_day  
     
     load_positions()
     load_balance()  
@@ -661,8 +805,6 @@ def run():
             write_thinking_log("Dynamic configuration loaded successfully.")
         except Exception as e:
             write_thinking_log(f"Error loading dynamic configuration: {e}")
-
-    # --- REMOVED THE DUPLICATE THREAD CALL HERE TO FIX THE SIGNAL VALUEERROR ---
 
     msg_start = f"Tess System Online. Monitoring assets: {', '.join(PAIRS)}"
     print(msg_start)
@@ -734,8 +876,120 @@ def run():
                                 ai_entry_price=decision.get("entry_price")
                             )
 
+        # Midnight report triggers
         maybe_morning_report()
+
+        # Daily EOD Ledger Email Trigger (Runs every night at 11:55 PM)
+        if now.hour == 23 and now.minute >= 55 and last_daily_ledger_day != now.date():
+            last_daily_ledger_day = now.date()
+            report_thread = threading.Thread(target=send_daily_ledger_email)
+            report_thread.start()
+
         time.sleep(SCAN_SECONDS)
+
+# ── Flask Server Definition ──────────────────
+app = Flask(__name__, template_folder="templates")
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/api/status")
+def get_status():
+    global paper_balance, open_positions, next_planned_trade
+    trades = []
+    total_profit_td = 0.0
+    total_loss_td = 0.0
+    
+    if os.path.exists(LOG_FILE):
+        try:
+            with open(LOG_FILE, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+            
+            if len(lines) > 1:
+                # Dynamically normalize both old and new trades.csv headers line-by-line safely
+                headers = [h.strip().lower() for h in lines[0].split(",")]
+                
+                for line in lines[1:]:
+                    if not line.strip():
+                        continue
+                    try:
+                        row_parts = [r.strip() for r in line.split(",")]
+                        if len(row_parts) < len(headers):
+                            continue
+                        
+                        row = dict(zip(headers, row_parts))
+                        
+                        pnl_raw = row.get("pnl") or "0"
+                        time_raw = row.get("time") or row.get("exit_time") or ""
+                        pair_raw = row.get("pair") or ""
+                        direction_raw = row.get("direction") or ""
+                        entry_raw = row.get("entry") or "0"
+                        close_raw = row.get("close") or row.get("exit") or "0"
+                        status_raw = row.get("status") or row.get("result") or ""
+                        reason_raw = row.get("reason") or row.get("exit_type") or ""
+                        
+                        pnl_val = float(pnl_raw)
+                        entry_val = float(entry_raw)
+                        close_val = float(close_raw)
+                        
+                        is_closed = (
+                            status_raw.lower() in ("closed", "win", "loss") or 
+                            (close_val > 0 and pnl_val != 0)
+                        )
+                        
+                        if is_closed:
+                            # Accumulate Gross Totals
+                            if pnl_val > 0:
+                                total_profit_td += pnl_val
+                            else:
+                                total_loss_td += abs(pnl_val)
+                                
+                            trades.append({
+                                "time": time_raw,
+                                "pair": pair_raw,
+                                "direction": direction_raw,
+                                "entry": entry_val,
+                                "close": close_val,
+                                "pnl": pnl_val,
+                                "status": "closed",
+                                "reason": reason_raw
+                            })
+                    except:
+                        continue 
+                        
+            trades.reverse()
+            trades = trades[:20]
+        except Exception as e:
+            print(f"Error parsing trades.csv line-by-line: {e}")
+            
+    load_balance()
+    return jsonify({
+        "balance": paper_balance,
+        "positions": open_positions,
+        "trades": trades,
+        "next_planned": next_planned_trade,
+        "total_profit_td": round(total_profit_td, 2),
+        "total_loss_td": round(total_loss_td, 2)
+    })
+
+@app.route("/api/voice_command", methods=["POST"])
+def voice_command():
+    from chat_listener import generate_conversation_reply
+    data = request.json
+    command = data.get("command", "")
+    if not command:
+        return jsonify({"reply": "I couldn't hear any command, Harshit."})
+    reply = generate_conversation_reply(command)
+    return jsonify({"reply": reply})
+
+def run_flask():
+    """Runs the web server in the main thread with Hot-Reload enabled."""
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR) 
+    print("[Tess Cockpit] Live dashboard active at: http://localhost:5000")
+    app.run(port=5000, host="0.0.0.0", use_reloader=True)
 
 if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':

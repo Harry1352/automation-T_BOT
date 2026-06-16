@@ -14,6 +14,9 @@ GROQ_API_KEY = "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"
 
 GROQ_API_KEY_2 = "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"
 
+#GEMINI API_KEY
+GEMINI_API_KEY = "AQ.Ab8RN6Kk1q1HdS6c0NUo1cL0zJ9X-SrRqAVx-__FZh8_CSVLug"
+
 # --- Are we in paper mode or real mode? ---
 # ALWAYS start with True. Only change to False when you trust her.
 PAPER_MODE = True

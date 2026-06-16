@@ -3104,3 +3104,406 @@ Target: $67.2 | Risk Limit: $66.8 | Predicted PnL: $6.71 (Net: $5.88)
 [2026-06-13 12:21:20] AI Choice for ETH/USDT: SKIP | Reasoning: The trend on 15m and 1h timeframes is not aligned with the 5m timeframe, with EMA9 below EMA20. Historical memory shows some losses on ETH/USDT, so it's best to stand aside.
 [2026-06-13 12:21:20] AI Choice for LTC/USDT: SKIP | Reasoning: The trend on 15m timeframe is not aligned with the 5m and 1h timeframes, with EMA9 below EMA20. There is not enough historical data to make a confident decision.
 [2026-06-13 12:21:20] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, so it's best to skip this pair.
+[2026-06-13 12:26:22] Locked trade at breakeven for SOL/USDT
+[2026-06-13 12:26:22] Executing Scan #35
+[2026-06-13 12:29:24] [Tess Chat] Received message from Harshit: 'Whats our total pnl for this week?'
+[2026-06-13 12:29:26] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 12:31:23] Executing Scan #36
+[2026-06-13 12:35:20] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 12:36:31] Closed SOL/USDT: +1.11 USD. Reason: Stagnant scalp exit. New Balance: $173.88
+[2026-06-13 12:36:31] Executing Scan #37
+[2026-06-13 12:37:00] AI Choice for BTC/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is not overbought, and the ADX trend strength is moderate. Historical memory does not show repeated losses on BTC/USDT today.
+[2026-06-13 12:37:03] Expected reward is too narrow to justify taker fees: $1.50. Skip.
+[2026-06-13 12:37:03] AI Choice for ETH/USDT: SKIP | Reasoning: The trend on 5m and 15m timeframes is aligned, but the EMA9 is below EMA20 on the 1h timeframe, indicating a potential counter-trend trade. Historical memory shows mixed results on ETH/USDT, but no repeated losses today.
+[2026-06-13 12:37:03] AI Choice for SOL/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is not overbought, and the ADX trend strength is moderate. Historical memory shows some losses on SOL/USDT, but the current setup looks promising for a scalp trade.
+[2026-06-13 12:37:11] Position Established: LONG SOL/USDT at 40x.
+Target: $67.5 | Risk Limit: $66.5 | Predicted PnL: $7.23 (Net: $6.40)
+[2026-06-13 12:37:11] AI Choice for LTC/USDT: SKIP | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, but the RSI is not overbought, and the ADX trend strength is moderate. However, historical memory does not provide enough information to make a confident decision on LTC/USDT.
+[2026-06-13 12:37:11] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, and the current open position should be monitored and closed manually if necessary.
+[2026-06-13 12:42:12] Executing Scan #38
+[2026-06-13 12:47:13] Executing Scan #39
+[2026-06-13 12:52:20] Closed SOL/USDT: -0.25 USD. Reason: Stagnant scalp exit. New Balance: $173.63
+[2026-06-13 12:52:20] Executing Scan #40
+[2026-06-13 12:52:49] AI Choice for BTC/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned, with the price above the EMA200 on all timeframes. The EMA9 is above the EMA20 on all timeframes, indicating a strong uptrend. The RSI is not overbought on the 1h timeframe, and the ADX trend strength is moderate. Historical memory does not show repeated losses on BTC/USDT today.
+[2026-06-13 12:52:52] Expected reward is too narrow to justify taker fees: $1.54. Skip.
+[2026-06-13 12:52:52] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned, with the price above the EMA200 on all timeframes. The EMA9 is above the EMA20 on all timeframes, indicating a strong uptrend. The RSI is overbought on the 5m timeframe, but the ADX trend strength is strong. Historical memory does not show repeated losses on ETH/USDT today. The target must easily cover fees in scalp mode.
+[2026-06-13 12:53:01] Position Established: LONG ETH/USDT at 40x.
+Target: $1675.0 | Risk Limit: $1665.0 | Predicted PnL: $3.71 (Net: $2.88)
+[2026-06-13 12:53:01] AI Choice for SOL/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned, with the price above the EMA200 on all timeframes. The EMA9 is above the EMA20 on all timeframes, indicating a strong uptrend. The RSI is overbought on the 5m timeframe, but the ADX trend strength is strong. Historical memory shows mixed results on SOL/USDT today, but no repeated losses.
+[2026-06-13 12:53:09] Position Established: LONG SOL/USDT at 40x.
+Target: $67.5 | Risk Limit: $66.5 | Predicted PnL: $7.41 (Net: $6.58)
+[2026-06-13 12:53:09] AI Choice for LTC/USDT: SKIP | Reasoning: The trend on 5m, 15m, and 1h is aligned, but the RSI is not overbought or oversold on any timeframe. The ADX trend strength is moderate, but historical memory does not provide enough information to make a confident decision.
+[2026-06-13 12:53:09] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, and the open position should be managed separately.
+[2026-06-13 12:58:13] Executing Scan #41
+[2026-06-13 13:03:19] Locked trade at breakeven for SOL/USDT
+[2026-06-13 13:03:19] Executing Scan #42
+[2026-06-13 13:08:25] Closed ETH/USDT: +1.88 USD. Reason: Stagnant scalp exit. New Balance: $175.52
+[2026-06-13 13:08:31] Closed SOL/USDT: +2.36 USD. Reason: Stagnant scalp exit. New Balance: $177.88
+[2026-06-13 13:08:31] Executing Scan #43
+[2026-06-13 13:09:02] AI Choice for BTC/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is not overbought on the 1h timeframe, and the ADX trend strength is moderate. Historical memory does not show repeated losses on BTC/USDT today.
+[2026-06-13 13:09:04] Expected reward is too narrow to justify taker fees: $1.69. Skip.
+[2026-06-13 13:09:04] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is overbought on the 5m and 15m timeframes, but the ADX trend strength is strong. Historical memory shows a recent profit on ETH/USDT, and the target can cover fees.
+[2026-06-13 13:09:11] Position Established: LONG ETH/USDT at 40x.
+Target: $1680.0 | Risk Limit: $1668.0 | Predicted PnL: $4.10 (Net: $3.25)
+[2026-06-13 13:09:11] AI Choice for SOL/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is overbought on the 5m timeframe, but the ADX trend strength is strong. Historical memory shows mixed results on SOL/USDT, but the target can cover fees.
+[2026-06-13 13:09:19] Position Established: LONG SOL/USDT at 40x.
+Target: $68.0 | Risk Limit: $66.5 | Predicted PnL: $7.87 (Net: $7.02)
+[2026-06-13 13:09:19] AI Choice for LTC/USDT: SKIP | Reasoning: The trend on 5m, 15m, and 1h is aligned, but the RSI is overbought on the 5m timeframe, and the ADX trend strength is moderate. Historical memory does not provide enough information to make a confident decision.
+[2026-06-13 13:09:19] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, and the open position should be managed manually.
+[2026-06-13 13:12:15] Conversational email listener thread started.
+[2026-06-13 13:12:15] Dynamic configuration loaded successfully.
+[2026-06-13 13:12:15] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:12:17] Executing Scan #1
+[2026-06-13 13:12:50] Conversational email listener thread started.
+[2026-06-13 13:12:50] Dynamic configuration loaded successfully.
+[2026-06-13 13:12:50] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:12:51] Executing Scan #1
+[2026-06-13 13:22:09] Dynamic configuration loaded successfully.
+[2026-06-13 13:22:09] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:22:13] Executing Scan #1
+[2026-06-13 13:23:53] Dynamic configuration loaded successfully.
+[2026-06-13 13:23:53] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:23:59] Closed ETH/USDT: +1.29 USD. Reason: Stagnant scalp exit. New Balance: $179.17
+[2026-06-13 13:24:00] Dynamic configuration loaded successfully.
+[2026-06-13 13:24:00] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:24:06] Closed SOL/USDT: +1.27 USD. Reason: Stagnant scalp exit. New Balance: $180.44
+[2026-06-13 13:24:06] Executing Scan #1
+[2026-06-13 13:28:06] Dynamic configuration loaded successfully.
+[2026-06-13 13:28:06] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:28:07] Executing Scan #1
+[2026-06-13 13:28:36] AI Choice for BTC/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is not overbought, and the ADX trend strength is moderate. Historical memory does not show repeated losses on BTC/USDT today.
+[2026-06-13 13:28:39] Expected reward is too narrow to justify taker fees: $1.72. Skip.
+[2026-06-13 13:28:39] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is high but not overbought, and the ADX trend strength is strong. Historical memory shows some profitable trades on ETH/USDT.
+[2026-06-13 13:28:46] Position Established: LONG ETH/USDT at 40x.
+Target: $1680.0 | Risk Limit: $1674.0 | Predicted PnL: $4.27 (Net: $3.40)
+[2026-06-13 13:28:46] AI Choice for SOL/USDT: SKIP | Reasoning: Historical memory shows repeated losses on SOL/USDT, so it's best to stand aside for now.
+[2026-06-13 13:28:46] AI Choice for LTC/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, with the price above the EMA200 and EMA9 above EMA20. The RSI is not overbought, and the ADX trend strength is moderate. However, the price movement is relatively slow, so a scalp trade is more suitable.
+[2026-06-13 13:28:46] Price error LTC/USDT — 'LTC/USDT'
+[2026-06-13 13:28:46] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data for XAUT/USDT, so it's best to skip this pair for now.
+[2026-06-13 13:32:59] Dynamic configuration loaded successfully.
+[2026-06-13 13:32:59] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:33:02] Executing Scan #1
+[2026-06-13 13:35:12] Conversational email listener thread started.
+[2026-06-13 13:35:12] Dynamic configuration loaded successfully.
+[2026-06-13 13:35:12] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:35:22] Closed ETH/USDT: -1.15 USD. Reason: SL threshold hit. New Balance: $179.29
+[2026-06-13 13:35:22] Executing Scan #1
+[2026-06-13 13:38:21] Conversational email listener thread started.
+[2026-06-13 13:38:21] Dynamic configuration loaded successfully.
+[2026-06-13 13:38:21] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:38:21] Executing Scan #1
+[2026-06-13 13:38:52] Conversational email listener thread started.
+[2026-06-13 13:38:52] Dynamic configuration loaded successfully.
+[2026-06-13 13:38:52] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT, LTC/USDT
+[2026-06-13 13:38:52] Executing Scan #1
+[2026-06-13 13:39:00] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 13:41:14] Dynamic configuration loaded successfully.
+[2026-06-13 13:41:14] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 13:41:15] Executing Scan #1
+[2026-06-13 13:41:24] [Tess Chat] Groq API returned status code 429: {"error":{"message":"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01k
+[2026-06-13 13:46:36] Executing Scan #2
+[2026-06-13 13:48:44] Dynamic configuration loaded successfully.
+[2026-06-13 13:48:44] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 13:48:45] Executing Scan #1
+[2026-06-13 13:53:48] Dynamic configuration loaded successfully.
+[2026-06-13 13:53:48] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 13:53:50] Executing Scan #1
+[2026-06-13 13:54:20] Dynamic configuration loaded successfully.
+[2026-06-13 13:54:20] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 13:54:24] Executing Scan #1
+[2026-06-13 13:55:49] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 13:55:50] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 13:56:12] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 13:56:13] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 14:40:12] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 14:40:12] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 14:45:05] Dynamic configuration loaded successfully.
+[2026-06-13 14:45:05] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 14:45:06] Executing Scan #1
+[2026-06-13 14:47:00] Dynamic configuration loaded successfully.
+[2026-06-13 14:47:00] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 14:47:01] Executing Scan #1
+[2026-06-13 14:52:43] Dynamic configuration loaded successfully.
+[2026-06-13 14:52:43] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 14:52:45] Executing Scan #1
+[2026-06-13 14:53:08] AI Choice for BTC/USDT: LONG | Reasoning: The trend is aligned across all three timeframes (5m, 15m, 1h) with the price above the EMA200, indicating an uptrend. The EMA9 is above the EMA20, further confirming the uptrend. The RSI values are 58.5, 74.9, and 60.3 for the 5m, 15m, and 1h timeframes, respectively, which are not overbought. Given the historical memory, there have been losses on BTC/USDT, but not repeated losses today, so we can consider a trade. The ATR values are 47.2557, 84.5214, and 192.5586 for the 5m, 15m, and 1h timeframes, respectively, which can help in setting the stop loss and take profit targets. The ADX trend strength values are 15.8, 5.1, and 6.6 for the 5m, 15m, and 1h timeframes, respectively, indicating a moderate trend strength.
+[2026-06-13 14:53:10] Expected reward is too narrow to justify taker fees: $2.45. Skip.
+[2026-06-13 14:53:10] AI Choice for ETH/USDT: LONG | Reasoning: The trend is aligned across all three timeframes (5m, 15m, 1h) with the price above the EMA200, indicating an uptrend. The EMA9 is above the EMA20, further confirming the uptrend. The RSI values are 49.7, 78.3, and 62.2 for the 5m, 15m, and 1h timeframes, respectively, which are not overbought. Given the historical memory, there have been some profits on ETH/USDT, so we can consider a trade. The ATR values are 1.415, 2.9507, and 6.0236 for the 5m, 15m, and 1h timeframes, respectively, which can help in setting the stop loss and take profit targets. The ADX trend strength values are 16.9, 11.9, and 12.9 for the 5m, 15m, and 1h timeframes, respectively, indicating a moderate trend strength.
+[2026-06-13 14:53:17] Position Established: LONG ETH/USDT at 40x.
+Target: $1685.0 | Risk Limit: $1665.0 | Predicted PnL: $6.38 (Net: $5.52)
+[2026-06-13 14:53:17] AI Choice for SOL/USDT: LONG | Reasoning: The trend is aligned across all three timeframes (5m, 15m, 1h) with the price above the EMA200, indicating an uptrend. The EMA9 is above the EMA20, further confirming the uptrend. The RSI values are 60.0, 76.2, and 62.5 for the 5m, 15m, and 1h timeframes, respectively, which are not overbought. Given the historical memory, there have been some profits and losses on SOL/USDT, but we can still consider a trade. The ATR values are 0.1086, 0.1979, and 0.3993 for the 5m, 15m, and 1h timeframes, respectively, which can help in setting the stop loss and take profit targets. The ADX trend strength values are 5.3, 10.1, and 21.0 for the 5m, 15m, and 1h timeframes, respectively, indicating a moderate trend strength.
+[2026-06-13 14:53:24] Position Established: LONG SOL/USDT at 40x.
+Target: $68.5 | Risk Limit: $66.5 | Predicted PnL: $10.60 (Net: $9.74)
+[2026-06-13 14:53:24] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, so we cannot make a trading decision.
+[2026-06-13 14:54:12] Conversational email listener thread started.
+[2026-06-13 14:54:12] Dynamic configuration loaded successfully.
+[2026-06-13 14:54:12] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 14:54:14] Executing Scan #1
+[2026-06-13 14:54:38] Conversational email listener thread started.
+[2026-06-13 14:54:38] Dynamic configuration loaded successfully.
+[2026-06-13 14:54:38] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-13 14:54:41] Executing Scan #1
+[2026-06-13 14:55:02] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 14:55:02] [Tess Chat] Groq Key 2 rate-limited. Rotating to Key 1...
+[2026-06-13 14:55:03] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 14:55:16] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 14:55:16] [Tess Chat] Groq Key 2 rate-limited. Rotating to Key 1...
+[2026-06-13 14:55:17] [Tess Chat] System config updated dynamically via email command.
+[2026-06-13 14:55:31] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 14:55:31] [Tess Chat] Groq Key 2 rate-limited. Rotating to Key 1...
+[2026-06-13 14:59:43] Executing Scan #2
+[2026-06-13 15:04:49] Executing Scan #3
+[2026-06-13 16:57:01] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 16:57:38] [Tess Chat] Gemini API returned status code 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version
+[2026-06-13 16:57:39] [Tess Chat] Groq Key 2 rate-limited. Rotating to Key 1...
+[2026-06-14 07:00:01] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-14 08:07:25] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-14 23:16:35] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-15 05:57:30] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-15 07:15:23] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-15 09:02:02] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-16 15:34:22] Conversational email listener thread started.
+[2026-06-16 15:34:22] Dynamic configuration loaded successfully.
+[2026-06-16 15:34:22] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:34:23] Locked trade at breakeven for XAUT/USDT
+[2026-06-16 15:36:19] Conversational email listener thread started.
+[2026-06-16 15:36:19] Dynamic configuration loaded successfully.
+[2026-06-16 15:36:19] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:36:34] [Tess Chat] Error: Connection or parsing error: The read operation timed out
+[2026-06-16 15:36:44] Conversational email listener thread started.
+[2026-06-16 15:36:44] Dynamic configuration loaded successfully.
+[2026-06-16 15:36:44] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:37:37] Conversational email listener thread started.
+[2026-06-16 15:37:37] Dynamic configuration loaded successfully.
+[2026-06-16 15:37:37] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:38:24] Conversational email listener thread started.
+[2026-06-16 15:38:24] Dynamic configuration loaded successfully.
+[2026-06-16 15:38:24] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:38:46] Conversational email listener thread started.
+[2026-06-16 15:38:46] Dynamic configuration loaded successfully.
+[2026-06-16 15:38:46] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:39:11] Conversational email listener thread started.
+[2026-06-16 15:39:11] Dynamic configuration loaded successfully.
+[2026-06-16 15:39:11] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:39:23] Conversational email listener thread started.
+[2026-06-16 15:39:23] Dynamic configuration loaded successfully.
+[2026-06-16 15:39:23] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:39:35] Conversational email listener thread started.
+[2026-06-16 15:39:35] Dynamic configuration loaded successfully.
+[2026-06-16 15:39:35] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:40:44] Conversational email listener thread started.
+[2026-06-16 15:40:44] Dynamic configuration loaded successfully.
+[2026-06-16 15:40:44] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:40:58] Conversational email listener thread started.
+[2026-06-16 15:40:58] Dynamic configuration loaded successfully.
+[2026-06-16 15:40:58] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:41:26] Conversational email listener thread started.
+[2026-06-16 15:41:26] Dynamic configuration loaded successfully.
+[2026-06-16 15:41:26] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:55:04] Conversational email listener thread started.
+[2026-06-16 15:55:04] Dynamic configuration loaded successfully.
+[2026-06-16 15:55:04] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:56:47] Conversational email listener thread started.
+[2026-06-16 15:56:47] Dynamic configuration loaded successfully.
+[2026-06-16 15:56:47] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 15:56:54] Closed XAUT/USDT: +13.02 USD. Reason: TP target hit. New Balance: $359.32
+[2026-06-16 15:56:55] Locked trade at breakeven for ETH/USDT
+[2026-06-16 15:56:59] Closed ETH/USDT: +60.51 USD. Reason: TP target hit. New Balance: $419.83
+[2026-06-16 15:57:00] Locked trade at breakeven for SOL/USDT
+[2026-06-16 15:57:04] Closed SOL/USDT: +95.83 USD. Reason: TP target hit. New Balance: $515.67
+[2026-06-16 15:57:04] Executing Scan #1
+[2026-06-16 15:57:35] AI Choice for XAUT/USDT: LONG | Reasoning: The trend on 5m, 15m, and implied 1h timeframes is aligned (above EMA), with EMA9 above EMA20 on all timeframes, indicating a strong uptrend. The RSI values are 53.3, 74.4, and implied 1h RSI is not overbought, suggesting room for further growth. ADX trend strength is moderate, supporting the uptrend. Historical memory does not show repeated losses on XAUT/USDT, making it a viable trade option.
+[2026-06-16 15:57:37] Expected reward is too narrow to justify taker fees: $2.03. Skip.
+[2026-06-16 15:57:37] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and implied 1h timeframes is aligned (above EMA), with EMA9 above EMA20 on all timeframes, indicating an uptrend. The RSI values are 53.3, 68.6, and implied 1h RSI is not overbought, suggesting room for further growth. ADX trend strength is moderate, supporting the uptrend. Historical memory shows some profitable trades on ETH/USDT, making it a viable scalp option with a tight stop-loss and take-profit to cover fees.
+[2026-06-16 15:57:44] Position Established: LONG ETH/USDT at 19x.
+Target: $1796.0 | Risk Limit: $1790.0 | Predicted PnL: $11.85 (Net: $10.67)
+[2026-06-16 15:57:44] AI Choice for BTC/USDT: SKIP | Reasoning: Although the trend on 5m, 15m, and implied 1h timeframes is aligned (above EMA), the RSI values are 51.3, 57.1, and the implied 1h RSI is not overbought, historical memory does not provide enough confidence to enter a trade on BTC/USDT at this time.
+[2026-06-16 15:57:44] AI Choice for SOL/USDT: SKIP | Reasoning: The trend on 1m timeframe is below EMA (downtrend), while the trend on 5m and 15m timeframes is above EMA (uptrend), indicating a potential trend reversal. Historical memory shows mixed results on SOL/USDT, making it less desirable for a trade at this time.
+[2026-06-16 15:58:45] Executing Scan #2
+[2026-06-16 15:59:09] AI Choice for XAUT/USDT: LONG | Reasoning: The trend on 5m, 15m, and implied 1h timeframes is aligned as an uptrend. The EMA9 is above the EMA20 on all timeframes, indicating a strong bullish trend. The RSI is not overbought, and the ADX trend strength is moderate, suggesting a potential for further upside. The ATR is relatively low, indicating low volatility, which is favorable for a swing trade.
+[2026-06-16 15:59:13] Expected reward is too narrow to justify taker fees: $2.03. Skip.
+[2026-06-16 15:59:13] AI Choice for BTC/USDT: LONG | Reasoning: The trend on 5m, 15m, and implied 1h timeframes is aligned as an uptrend. The EMA9 is above the EMA20 on all timeframes, indicating a strong bullish trend. The RSI is not overbought, and the ADX trend strength is moderate, suggesting a potential for further upside. The ATR is relatively high, indicating high volatility, but the trend is strong enough to justify a swing trade.
+[2026-06-16 15:59:20] Position Established: LONG BTC/USDT at 25x.
+Target: $67000.0 | Risk Limit: $66400.0 | Predicted PnL: $10.39 (Net: $8.84)
+[2026-06-16 15:59:20] AI Choice for SOL/USDT: SKIP | Reasoning: The trend on 1m timeframe is a downtrend, while the trend on 5m and 15m timeframes is an uptrend. This discrepancy makes it difficult to determine a clear trend, and therefore, it's best to skip trading this pair.
+[2026-06-16 15:59:20] AI Choice for ETH/USDT: SKIP | Reasoning: There is no data provided for ETH/USDT in the live market snapshot, so it's not possible to make a trading decision.
+[2026-06-16 16:00:20] Locked trade at breakeven for ETH/USDT
+[2026-06-16 16:00:21] Executing Scan #3
+[2026-06-16 16:01:26] Closed ETH/USDT: +2.79 USD. Reason: TP target hit. New Balance: $518.46
+[2026-06-16 16:01:27] Executing Scan #4
+[2026-06-16 16:01:48] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and implied 1h timeframes is aligned as an uptrend for ETH/USDT. The EMA9 is above EMA20 on all timeframes, and the RSI is not overbought. Historical memory does not show repeated losses on ETH/USDT today, making it a viable option for a long trade.
+[2026-06-16 16:01:56] Position Established: LONG ETH/USDT at 18x.
+Target: $1830.0 | Risk Limit: $1780.0 | Predicted PnL: $11.70 (Net: $10.58)
+[2026-06-16 16:01:56] AI Choice for SOL/USDT: LONG | Reasoning: The trend on 5m and 15m timeframes is aligned as an uptrend for SOL/USDT. Although the 1m timeframe shows a downtrend, the EMA9 is above EMA20 on the 5m and 15m timeframes, and the RSI is not overbought. The target for the scalp trade is set to easily cover fees.
+[2026-06-16 16:02:04] Position Established: LONG SOL/USDT at 17x.
+Target: $75.2 | Risk Limit: $74.5 | Predicted PnL: $11.39 (Net: $10.33)
+[2026-06-16 16:02:04] AI Choice for XAUT/USDT: SKIP | Reasoning: The trend on the 5m timeframe is an uptrend, but the 1m timeframe shows a downtrend for XAUT/USDT. The lack of alignment between timeframes makes it a less desirable option for a trade.
+[2026-06-16 16:02:04] AI Choice for BTC/USDT: SKIP | Reasoning: There is no data provided for BTC/USDT in the live market snapshot, making it impossible to make an informed trading decision.
+[2026-06-16 16:03:06] Executing Scan #5
+[2026-06-16 16:04:09] Executing Scan #6
+[2026-06-16 16:05:11] Executing Scan #7
+[2026-06-16 16:06:14] Executing Scan #8
+[2026-06-16 16:07:16] Executing Scan #9
+[2026-06-16 16:08:17] Executing Scan #10
+[2026-06-16 16:09:19] Executing Scan #11
+[2026-06-16 16:10:24] Executing Scan #12
+[2026-06-16 16:11:15] Conversational email listener thread started.
+[2026-06-16 16:11:15] Dynamic configuration loaded successfully.
+[2026-06-16 16:11:15] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 16:11:16] Executing Scan #1
+[2026-06-16 16:16:13] Conversational email listener thread started.
+[2026-06-16 16:16:13] Dynamic configuration loaded successfully.
+[2026-06-16 16:16:13] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 16:16:19] Closed SOL/USDT: +0.14 USD. Reason: Stagnant scalp exit. New Balance: $518.60
+[2026-06-16 16:16:19] Executing Scan #1
+[2026-06-16 16:17:13] [Tess Chat] System config updated dynamically via email command.
+[2026-06-16 16:21:21] Executing Scan #2
+[2026-06-16 16:22:09] Conversational email listener thread started.
+[2026-06-16 16:22:09] Dynamic configuration loaded successfully.
+[2026-06-16 16:22:09] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 16:22:10] Executing Scan #1
+[2026-06-16 16:27:12] Executing Scan #2
+[2026-06-16 16:32:15] Executing Scan #3
+[2026-06-16 16:37:16] Executing Scan #4
+[2026-06-16 16:42:17] Executing Scan #5
+[2026-06-16 16:47:19] Executing Scan #6
+[2026-06-16 16:52:20] Executing Scan #7
+[2026-06-16 16:57:20] Initiating reflective analysis for loss on BTC/USDT...
+[2026-06-16 16:57:27] Closed BTC/USDT: -5.13 USD. Reason: SL threshold hit. New Balance: $513.47
+[2026-06-16 16:57:27] Executing Scan #8
+[2026-06-16 16:57:51] AI Choice for XAUT/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h is aligned as 'above EMA (uptrend)' for XAUT/USDT. The EMA9 and EMA20 are also in a bullish configuration on the 15m and 1h timeframes, with EMA9 above EMA20. The RSI is not overbought on any timeframe, with values of 38.5, 58.1, and 68.0 on the 5m, 15m, and 1h timeframes respectively. Given the historical memory, there's no indication of repeated losses on XAUT/USDT, making it a viable candidate for a long trade.
+[2026-06-16 16:57:58] Position Established: LONG XAUT/USDT at 20x.
+Target: $4350.0 | Risk Limit: $4290.0 | Predicted PnL: $5.28 (Net: $4.05)
+[2026-06-16 16:57:58] AI Choice for SOL/USDT: SKIP | Reasoning: Although the trend is aligned for SOL/USDT, the RSI on the 5m timeframe is 35.9, which is relatively low, and the ADX trend strength is weak across all timeframes. Given the mixed signals and the lack of a strong trend confirmation, it's prudent to skip trading SOL/USDT at this time.
+[2026-06-16 16:57:58] AI Choice for BTC/USDT: SKIP | Reasoning: The historical memory indicates a recent loss on BTC/USDT with a 'SL threshold hit' reason. Given this, and considering the principle of standing aside from assets with repeated losses, it's best to skip trading BTC/USDT for now.
+[2026-06-16 16:57:58] AI Choice for ETH/USDT: SKIP | Reasoning: There is an open position in ETH/USDT as per the account status. Without specific details on the current trade's performance or the indicators' alignment for ETH/USDT, and given the principle of not over-trading or interfering with existing positions without clear signals, it's best to skip making a new decision on ETH/USDT.
+[2026-06-16 17:03:00] Executing Scan #9
+[2026-06-16 17:08:01] Executing Scan #10
+[2026-06-16 17:13:02] Executing Scan #11
+[2026-06-16 17:18:04] Executing Scan #12
+[2026-06-16 17:23:05] Executing Scan #13
+[2026-06-16 17:28:08] Executing Scan #14
+[2026-06-16 17:33:10] Executing Scan #15
+[2026-06-16 17:38:12] Executing Scan #16
+[2026-06-16 17:43:13] Locked trade at breakeven for ETH/USDT
+[2026-06-16 17:43:13] Executing Scan #17
+[2026-06-16 17:48:14] Executing Scan #18
+[2026-06-16 17:53:16] Executing Scan #19
+[2026-06-16 17:58:18] Executing Scan #20
+[2026-06-16 18:03:19] Executing Scan #21
+[2026-06-16 18:08:20] Executing Scan #22
+[2026-06-16 18:13:22] Executing Scan #23
+[2026-06-16 18:18:28] Closed ETH/USDT: +11.73 USD. Reason: SL threshold hit. New Balance: $525.20
+[2026-06-16 18:18:29] Locked trade at breakeven for XAUT/USDT
+[2026-06-16 18:18:29] Executing Scan #24
+[2026-06-16 18:18:51] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned (above EMA, uptrend). The RSI on the 5m timeframe is 67.2, indicating a potential for a short-term long position. The ADX trend strength is 14.7 on the 5m timeframe, which is relatively strong. Given the historical memory, there have been successful long positions on ETH/USDT in the past. The target price is set to easily cover fees, and the stop-loss price is set to limit potential losses.
+[2026-06-16 18:18:58] Position Established: LONG ETH/USDT at 16x.
+Target: $1822.0 | Risk Limit: $1815.0 | Predicted PnL: $20.17 (Net: $19.16)
+[2026-06-16 18:18:58] AI Choice for SOL/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned (above EMA, uptrend). The RSI on the 5m timeframe is 62.8, indicating a potential for a short-term long position. The ADX trend strength is 19.7 on the 5m timeframe, which is relatively strong. Given the historical memory, there have been successful long positions on SOL/USDT in the past. The target price is set to easily cover fees, and the stop-loss price is set to limit potential losses.
+[2026-06-16 18:19:05] Position Established: LONG SOL/USDT at 18x.
+Target: $75.2 | Risk Limit: $74.8 | Predicted PnL: $20.58 (Net: $19.45)
+[2026-06-16 18:19:05] AI Choice for BTC/USDT: SKIP | Reasoning: The RSI on the 5m timeframe is 55.2, which is not overbought or oversold. However, the historical memory shows a loss on a recent BTC/USDT trade, and the ADX trend strength is relatively weak (22.7 on the 5m timeframe). Given the uncertainty and potential for losses, it's best to skip this trade.
+[2026-06-16 18:19:05] AI Choice for XAUT/USDT: SKIP | Reasoning: There is an open position on XAUT/USDT, and no new trade should be initiated on this pair until the current position is closed.
+[2026-06-16 18:24:07] Initiating reflective analysis for loss on ETH/USDT...
+[2026-06-16 18:24:12] Closed ETH/USDT: -2.75 USD. Reason: SL threshold hit. New Balance: $522.45
+[2026-06-16 18:24:12] Initiating reflective analysis for loss on SOL/USDT...
+[2026-06-16 18:24:17] Closed SOL/USDT: -2.57 USD. Reason: SL threshold hit. New Balance: $519.87
+[2026-06-16 18:24:17] Executing Scan #25
+[2026-06-16 18:24:38] AI Choice for ETH/USDT: LONG | Reasoning: The trend is aligned across all timeframes (5m, 15m, 1h) with the price above the EMA200, indicating an uptrend. The EMA9 is above the EMA20 on all timeframes, suggesting a bullish momentum. The RSI is not overbought, and the ADX trend strength is moderate. Given the historical memory, ETH/USDT has shown profitability in the past, and there's no indication of repeated losses today. The scalp mode is chosen with a target that easily covers fees.
+[2026-06-16 18:24:45] Position Established: LONG ETH/USDT at 16x.
+Target: $1825.0 | Risk Limit: $1805.0 | Predicted PnL: $20.52 (Net: $19.52)
+[2026-06-16 18:24:45] AI Choice for SOL/USDT: LONG | Reasoning: Similar to ETH/USDT, the trend is aligned across all timeframes, and the EMA9 is above the EMA20, indicating a bullish momentum. The RSI is not overbought, and the ADX trend strength is moderate. However, the confidence is lower compared to ETH/USDT due to the lower ADX trend strength on the 1h timeframe. The historical memory shows profitability for SOL/USDT, and the scalp mode is chosen with a target that covers fees.
+[2026-06-16 18:24:54] Position Established: LONG SOL/USDT at 17x.
+Target: $75.6 | Risk Limit: $74.2 | Predicted PnL: $20.05 (Net: $18.99)
+[2026-06-16 18:24:54] AI Choice for BTC/USDT: SKIP | Reasoning: The trend is aligned across all timeframes, but the EMA9 is below the EMA20 on the 5m timeframe, indicating a bearish momentum in the short term. The RSI is around 50, and the ADX trend strength is low. Given the historical memory, BTC/USDT has shown losses in the past, and it's better to stand aside for now.
+[2026-06-16 18:24:54] AI Choice for XAUT/USDT: SKIP | Reasoning: There is an open position in XAUT/USDT, and no new trade is considered until the current position is closed.
+[2026-06-16 18:39:25] Initiating reflective analysis for loss on ETH/USDT...
+[2026-06-16 18:39:34] Closed ETH/USDT: -1.57 USD. Reason: Stagnant scalp exit. New Balance: $518.30
+[2026-06-16 18:39:40] Initiating reflective analysis for loss on SOL/USDT...
+[2026-06-16 18:39:45] Closed SOL/USDT: -0.85 USD. Reason: Stagnant scalp exit. New Balance: $517.45
+[2026-06-16 18:39:50] Executing Scan #26
+[2026-06-16 18:40:14] AI Choice for ETH/USDT: LONG | Reasoning: The trend on 5m, 15m, and 1h timeframes is aligned, with the price above the EMA200 on all timeframes. The EMA9 is above the EMA20 on all timeframes, indicating a strong uptrend. The RSI is not overbought, and the ADX trend strength is moderate. Historical memory shows repeated profits on ETH/USDT, and there are no repeated losses on this asset today. The setup does not violate any lessons from our cognitive memory.
+[2026-06-16 18:40:22] Position Established: LONG ETH/USDT at 15x.
+Target: $1850.0 | Risk Limit: $1780.0 | Predicted PnL: $20.33 (Net: $19.40)
+[2026-06-16 18:40:22] AI Choice for SOL/USDT: SKIP | Reasoning: The trend on 5m, 15m, and 1h timeframes is not aligned, with the price below the EMA200 on the 5m timeframe. The EMA9 is below the EMA20 on the 5m timeframe, indicating a potential downtrend. Historical memory shows mixed results on SOL/USDT, and the setup may violate lessons from our cognitive memory.
+[2026-06-16 18:40:22] AI Choice for BTC/USDT: SKIP | Reasoning: The trend on 5m, 15m, and 1h timeframes is not aligned, with the price below the EMA200 on the 5m and 15m timeframes. The EMA9 is below the EMA20 on the 5m and 15m timeframes, indicating a potential downtrend. Historical memory shows repeated losses on BTC/USDT, and the setup may violate lessons from our cognitive memory.
+[2026-06-16 18:40:22] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, and the pair is already open in the account. It's best to skip this pair and focus on other opportunities.
+[2026-06-16 21:58:18] Conversational email listener thread started.
+[2026-06-16 21:58:18] Dynamic configuration loaded successfully.
+[2026-06-16 21:58:18] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 21:58:20] Initiating reflective analysis for loss on ETH/USDT...
+[2026-06-16 21:58:25] Closed ETH/USDT: -17.26 USD. Reason: SL threshold hit. New Balance: $500.19
+[2026-06-16 21:58:30] Executing Scan #1
+[2026-06-16 21:58:57] AI Choice for ETH/USDT: SKIP | Reasoning: The trend on 5m and 15m is below EMA (downtrend), but on 1h it's above EMA (uptrend). This indicates a misaligned trend across timeframes, so we should skip this trade to avoid counter-trend trading.
+[2026-06-16 21:58:57] AI Choice for SOL/USDT: SKIP | Reasoning: The trend on 5m and 15m is below EMA (downtrend), but on 1h it's above EMA (uptrend). This indicates a misaligned trend across timeframes, so we should skip this trade to avoid counter-trend trading.
+[2026-06-16 21:58:57] AI Choice for BTC/USDT: SKIP | Reasoning: The trend on 5m and 15m is below EMA (downtrend), but on 1h it's above EMA (uptrend). This indicates a misaligned trend across timeframes, so we should skip this trade to avoid counter-trend trading.
+[2026-06-16 21:58:57] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, so we cannot make a trading decision.
+[2026-06-16 22:07:21] Conversational email listener thread started.
+[2026-06-16 22:07:22] Dynamic configuration loaded successfully.
+[2026-06-16 22:07:22] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:07:24] Executing Scan #1
+[2026-06-16 22:07:45] AI Choice for ETH/USDT: SKIP | Reasoning: The trend on 5m and 15m timeframes is below EMA (downtrend), but on the 1h timeframe, it's above EMA (uptrend). This misalignment in trend does not meet the criteria for a trade.
+[2026-06-16 22:07:45] AI Choice for SOL/USDT: SKIP | Reasoning: Similar to ETH/USDT, the trend on 5m and 15m timeframes is below EMA (downtrend), but on the 1h timeframe, it's above EMA (uptrend). This does not align with our trading criteria.
+[2026-06-16 22:07:45] AI Choice for BTC/USDT: SKIP | Reasoning: The trend on 5m and 15m timeframes is below EMA (downtrend), but on the 1h timeframe, it's above EMA (uptrend). This trend misalignment does not meet our trading requirements.
+[2026-06-16 22:07:45] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data provided for XAUT/USDT, so we cannot make an informed decision.
+[2026-06-16 22:12:46] Executing Scan #2
+[2026-06-16 22:13:10] Groq Trading Engine Fallback error: Extra data: line 47 column 1 (char 1344)
+[2026-06-16 22:14:16] Conversational email listener thread started.
+[2026-06-16 22:14:16] Dynamic configuration loaded successfully.
+[2026-06-16 22:14:16] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:14:17] Executing Scan #1
+[2026-06-16 22:18:55] Conversational email listener thread started.
+[2026-06-16 22:18:55] Dynamic configuration loaded successfully.
+[2026-06-16 22:18:55] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:18:55] Executing Scan #1
+[2026-06-16 22:19:52] AI Choice for ETH/USDT: LONG | Reasoning: The trend on the 1h timeframe is above EMA (uptrend) and the EMA9 is above EMA20, indicating a potential long opportunity. The RSI on the 1h timeframe is 52.3, which is not overbought. The ADX trend strength on the 1h timeframe is 25.3, indicating a strong trend. On the 5m and 15m timeframes, the trend is below EMA, but the EMA9 is close to the EMA20, suggesting a potential reversal. Historical memory shows repeated profits on ETH/USDT, so we can consider a long position.
+[2026-06-16 22:20:01] Position Established: LONG ETH/USDT at 13x.
+Target: $1850.0 | Risk Limit: $1750.0 | Predicted PnL: $20.22 (Net: $19.44)
+[2026-06-16 22:20:01] AI Choice for SOL/USDT: SKIP | Reasoning: The trend on the 5m, 15m, and 1h timeframes is not aligned, with the 1h timeframe showing an uptrend and the 5m and 15m timeframes showing a downtrend. Historical memory shows mixed results on SOL/USDT, so we will skip this pair for now.
+[2026-06-16 22:20:01] AI Choice for BTC/USDT: SKIP | Reasoning: The trend on the 5m and 15m timeframes is below EMA (downtrend), and the EMA9 is below EMA20, indicating a potential short opportunity. However, the trend on the 1h timeframe is above EMA (uptrend), which contradicts the shorter timeframes. Historical memory shows a loss on BTC/USDT, so we will skip this pair for now.
+[2026-06-16 22:20:01] AI Choice for XAUT/USDT: SKIP | Reasoning: There is no live market data available for XAUT/USDT, so we cannot make a decision on this pair.
+[2026-06-16 22:25:02] Executing Scan #2
+[2026-06-16 22:27:54] Conversational email listener thread started.
+[2026-06-16 22:27:54] Dynamic configuration loaded successfully.
+[2026-06-16 22:27:54] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:27:55] Executing Scan #1
+[2026-06-16 22:28:33] Conversational email listener thread started.
+[2026-06-16 22:28:33] Dynamic configuration loaded successfully.
+[2026-06-16 22:28:33] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:28:34] Executing Scan #1
+[2026-06-16 22:31:09] Conversational email listener thread started.
+[2026-06-16 22:31:09] Dynamic configuration loaded successfully.
+[2026-06-16 22:31:09] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:31:10] Executing Scan #1
+[2026-06-16 22:31:23] Conversational email listener thread started.
+[2026-06-16 22:31:23] Dynamic configuration loaded successfully.
+[2026-06-16 22:31:23] Tess System Online. Monitoring assets: XAUT/USDT, BTC/USDT, ETH/USDT, SOL/USDT
+[2026-06-16 22:31:24] Executing Scan #1
+[2026-06-16 22:36:24] Initiating reflective analysis for loss on XAUT/USDT...
+[2026-06-16 22:36:29] Closed XAUT/USDT: -0.48 USD. Reason: SL threshold hit. New Balance: $499.71
+[2026-06-16 22:36:30] Executing Scan #2
+[2026-06-16 22:41:54] Executing Scan #3
