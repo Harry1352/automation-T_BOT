@@ -1,49 +1,39 @@
-# ============================================
-# TESS — Configuration File
-# Your settings live here. Nothing else touches this file.
-# ============================================
+# ==============================================================================
+# TESS — Unified Configuration File (config.py)
+# ==============================================================================
+from keys import (
+    DELTA_API_KEY,
+    DELTA_API_SECRET,
+    NVIDIA_NEMOTRON_KEY,
+    GROQ_API_KEY_2,
+    TESS_GMAIL,
+    TESS_GMAIL_APP_PASSWORD,
+    YOUR_EMAIL,
+    GOOGLE_STUDIO_API_KEY  
+)
 
-# --- Your Delta Exchange API Keys ---
-# Go to Delta Exchange → Settings → API Keys → Create
-# Give it Trade permission only. NO withdrawal permission.
-DELTA_API_KEY = "paste_your_api_key_here"
-DELTA_API_SECRET = "paste_your_secret_here"
-
-#GROQ_API_KEY
-GROQ_API_KEY = "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"
-
-GROQ_API_KEY_2 = "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"
-
-#GEMINI API_KEY
-GEMINI_API_KEY = "AQ.Ab8RN6Kk1q1HdS6c0NUo1cL0zJ9X-SrRqAVx-__FZh8_CSVLug"
+# Rename the key standard for backward compatibility with your existing scanner
+GEMINI_API_KEY = NVIDIA_NEMOTRON_KEY
 
 # --- Are we in paper mode or real mode? ---
-# ALWAYS start with True. Only change to False when you trust her.
 PAPER_MODE = True
-PAPER_BALANCE = 10000  # fake $10,000 to test with
+PAPER_BALANCE = 180.0  # Simulated $10,000 to test with
 
 # --- What Tess trades ---
-TRADING_PAIRS = ["ETH/USDT", "SOL/USDT"]
+TRADING_PAIRS = ["ETH/USDT", "SOL/USDT", "BTC/USDT", "XAUT/USDT"]
 
-# --- How careful Tess is ---
-MIN_CONFIDENCE = 75        # she only trades if she's 75% sure or more
-MAX_RISK_PER_TRADE = 2     # she risks max 2% of your balance per trade
-DAILY_LOSS_LIMIT = 200     # she stops completely if she loses $200 in one day
-REWARD_TO_RISK = 2.0       # she aims to make 2x whatever she risks
+# --- Sizing & Safety Parameters ---
+MIN_CONFIDENCE = 75        
+MAX_RISK_PER_TRADE = 2.0     
+DAILY_LOSS_LIMIT = 200.0     
+REWARD_TO_RISK = 3.5       
 
-# --- Timeframes she watches ---
-TIMEFRAMES = ["15m", "1h", "4h"]  # 15 min, 1 hour, 4 hour candles
+# --- Technical Scan Interval ---
+SCAN_INTERVAL_MINUTES = 5  
 
-# --- Email alerts ---
-TESS_GMAIL = "tessbot1352@gmail.com"
-TESS_GMAIL_APP_PASSWORD = "uswkamwndvfjcfhe"
-YOUR_EMAIL = "h.tess.receiver@gmail.com"
+# --- Session Control ---
+SESSION_GATE_ACTIVE = False
 
-# --- WhatsApp (we set this up together later) ---
-WHATSAPP_ENABLED = False
-TWILIO_SID = ""
-TWILIO_TOKEN = ""
-YOUR_WHATSAPP = ""
-
-# --- How often Tess checks the market ---
-SCAN_INTERVAL_MINUTES = 5  # every 5 minutes she looks at ETH and SOL
+# --- Adaptive Indicator Tuning ---
+# Lower to 10.0-15.0 for active trading; raise to 20.0 for strict trend-following
+MIN_ADX_THRESHOLD = 14.0

@@ -1,6 +1,6 @@
-# ============================================
-# TESS — Unified Engine v12.2 (UN-CRASHABLE PARSER)
-# ============================================
+# ==============================================================================
+# TESS — Unified Execution Engine & Direct Agentic Decision Loop (v12.13)
+# ==============================================================================
 
 import ccxt
 import pandas as pd
@@ -12,6 +12,7 @@ import csv
 import requests
 import random
 import threading
+import re
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request
 from alerts import (
@@ -21,55 +22,239 @@ from alerts import (
     alert_kill_switch,
     alert_morning_report
 )
+import fcs_api
+import strategies
+
+# Ensure safe workspace directories for smart auto-refresh ignoring
+DIARY_DIR = ".tess_diary"
+os.makedirs(DIARY_DIR, exist_ok=True)
 
 # ══════════════════════════════════════════
 # SETTINGS
 # ══════════════════════════════════════════
 PAPER_MODE         = True
-PAPER_BALANCE      = 180.0       # $180 USD = ~₹15,300 INR
-DAILY_LOSS_LIMIT   = 12.0        # Hard stop
-SOFT_LOSS_LIMIT    = 6.0         # Raise AI caution threshold
-REWARD_TO_RISK     = 3.5         # Target 3.5x whatever we risk (3:1 to 4:1)
-SCAN_SECONDS       = 300         # 5 minutes scan interval
+PAPER_BALANCE      = 180.0       
+DAILY_LOSS_LIMIT   = 12.0        
+SOFT_LOSS_LIMIT    = 6.0         
+REWARD_TO_RISK     = 3.5         
+SCAN_SECONDS       = 300         
 PAIRS              = ["ETH/USDT", "SOL/USDT", "BTC/USDT", "XAUT/USDT"]  
 
 PAIR_RULES = {
-    "ETH/USDT" : {"min_confidence": 82, "max_capital_pct": 0.14, "max_leverage": 40},
-    "SOL/USDT" : {"min_confidence": 82, "max_capital_pct": 0.14, "max_leverage": 40},
-    "BTC/USDT" : {"min_confidence": 85, "max_capital_pct": 0.10, "max_leverage": 25},
+    "ETH/USDT" : {"min_confidence": 82, "max_capital_pct": 0.14, "max_leverage": 50},
+    "SOL/USDT" : {"min_confidence": 82, "max_capital_pct": 0.14, "max_leverage": 50},
+    "BTC/USDT" : {"min_confidence": 85, "max_capital_pct": 0.10, "max_leverage": 50},
     "XAUT/USDT": {"min_confidence": 85, "max_capital_pct": 0.10, "max_leverage": 20}, 
 }
-LOG_FILE           = "trades.csv"
-THINKING_LOG       = "tess_thinking.log"
-PERF_FILE          = "performance.json"
-POSITIONS_FILE     = "open_positions.json"  
-CONFIG_FILE        = "dynamic_config.json"
-BALANCE_FILE       = "balance.json"         
-LESSONS_FILE       = "trade_lessons.json"   
+
+# Redirect logging and states to prevent reloader restarts
+LOG_FILE           = os.path.join(DIARY_DIR, "trades.csv")
+THINKING_LOG       = os.path.join(DIARY_DIR, "tess_thinking.log")
+PERF_FILE          = os.path.join(DIARY_DIR, "performance.json")
+POSITIONS_FILE     = os.path.join(DIARY_DIR, "open_positions.json")  
+CONFIG_FILE        = os.path.join(DIARY_DIR, "dynamic_config.json")
+BALANCE_FILE       = os.path.join(DIARY_DIR, "balance.json")         
+
+PENDING_FILE       = os.path.join(DIARY_DIR, "pending_approvals.json")
+APPROVED_QUEUE     = os.path.join(DIARY_DIR, "approved_queue.json")
+
 MAX_OPEN_POSITIONS = 2
 COOLDOWN_MINUTES   = 15
 TAKER_FEE_PCT      = 0.0005
 
-from config import GROQ_API_KEY, GROQ_API_KEY_2
+from config import GROQ_API_KEY_2, GEMINI_API_KEY
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# State
-paper_balance      = PAPER_BALANCE
-daily_loss         = 0.0
-daily_profit       = 0.0
-daily_trades       = 0
-open_positions     = {}
-kill_switch_hit    = False
-last_report_day    = None
+# Runtime state variables
+paper_balance         = PAPER_BALANCE
+daily_loss            = 0.0
+daily_profit          = 0.0
+daily_trades          = 0
+open_positions        = {}
+kill_switch_hit       = False
+last_report_day       = None
 last_daily_ledger_day = None 
-consecutive_losses = 0
-cooldown_until     = None
-last_day           = datetime.now().date()
-scan_count         = 0
-next_planned_trade = "Analyzing markets to identify next optimal setup..."
+consecutive_losses    = 0
+cooldown_until         = None
+last_day               = datetime.now().date()
+scan_count             = 0
+next_planned_trade    = "Analyzing markets to identify next optimal setup..."
 
 COIN_IDS   = {"ETH/USDT": "ethereum", "SOL/USDT": "solana", "BTC/USDT": "bitcoin", "XAUT/USDT": "pax-gold"}
 KRAKEN_IDS = {"ETH/USDT": "XETHZUSD", "SOL/USDT": "SOLUSD", "BTC/USDT": "XXBTZUSD", "XAUT/USDT": "PAXGUSD"}
+
+
+# ══════════════════════════════════════════
+# SECTION 1: COGNITIVE MEMORY SYNTHESIZER
+# ══════════════════════════════════════════
+class MemorySynthesizer:
+    LESSON_CACHE_FILE = os.path.join(DIARY_DIR, "trade_lessons.json")
+    MAX_LESSONS = 5
+
+    @staticmethod
+    def extract_failure_patterns(trades: list) -> list[dict]:
+        if not trades:
+            return []
+        
+        df = pd.DataFrame(trades)
+        losses = df[df['pnl'] < 0].copy()
+        if losses.empty:
+            return []
+        
+        if 'rsi_entry' not in losses.columns:
+            losses['rsi_entry'] = 50.0
+        if 'adx_entry' not in losses.columns:
+            losses['adx_entry'] = 20.0
+
+        losses['rsi_bucket'] = pd.cut(losses['rsi_entry'], bins=[0,30,50,70,100], labels=['OS','NEUT','OB','EXT'])
+        losses['adx_bucket'] = pd.cut(losses['adx_entry'], bins=[0,15,25,100], labels=['WEAK','MOD','STRONG'])
+        
+        cols = ['pair', 'direction', 'mode', 'rsi_bucket', 'adx_bucket']
+        patterns = []
+        
+        for name, group in losses.groupby(cols, observed=False):
+            if len(group) >= 2:
+                avg_loss = group['pnl'].mean()
+                patterns.append({
+                    "fingerprint": dict(zip(cols, name)),
+                    "count": len(group),
+                    "avg_loss": round(avg_loss, 2),
+                    "last_occurrence": group['time'].max()
+                })
+        return sorted(patterns, key=lambda x: x['count'], reverse=True)
+
+    @staticmethod
+    def update_lesson_cache(new_trades: list):
+        try:
+            with open(MemorySynthesizer.LESSON_CACHE_FILE, 'r') as f:
+                cache = json.load(f)
+        except:
+            cache = {"lessons": [], "updated": ""}
+        
+        new_patterns = MemorySynthesizer.extract_failure_patterns(new_trades)
+        existing_map = {json.dumps(l['fingerprint'], sort_keys=True): l for l in cache['lessons']}
+        
+        for p in new_patterns:
+            key = json.dumps(p['fingerprint'], sort_keys=True)
+            if key in existing_map:
+                existing_map[key]['count'] = p['count']
+                existing_map[key]['last_occurrence'] = p['last_occurrence']
+            else:
+                existing_map[key] = p
+        
+        cache['lessons'] = sorted(existing_map.values(), key=lambda x: x['count'], reverse=True)[:20]
+        cache['updated'] = datetime.utcnow().isoformat()
+        
+        with open(MemorySynthesizer.LESSON_CACHE_FILE, 'w') as f:
+            json.dump(cache, f, indent=2)
+
+    @staticmethod
+    def build_prompt_block() -> str:
+        try:
+            with open(MemorySynthesizer.LESSON_CACHE_FILE, 'r') as f:
+                cache = json.load(f)
+        except:
+            return "COGNITIVE MEMORY: No historical lessons compiled."
+        
+        active_lessons = [l for l in cache['lessons'] if l['count'] >= 2][:MemorySynthesizer.MAX_LESSONS]
+        if not active_lessons:
+            return "COGNITIVE MEMORY: No recurring failure patterns found."
+        
+        block = "═══ COGNITIVE MEMORY: RECURRING FAILURE MODES TO AVOID ═══\n"
+        for i, l in enumerate(active_lessons, 1):
+            fp = l['fingerprint']
+            block += (
+                f"{i}. [{l['count']}x Losses | Avg: ${l['avg_loss']:.2f}] "
+                f"{fp.get('pair')} {fp.get('direction').upper()} ({fp.get('mode').upper()}) | "
+                f"Context: RSI={fp.get('rsi_bucket')}, ADX={fp.get('adx_bucket')}\n"
+            )
+        block += "══════════════════════════════════════════════════════════\n"
+        return block
+
+
+# ══════════════════════════════════════════
+# SECTION 2: THE LIQUIDITY & HEATMAP SAFETY ENGINE
+# ══════════════════════════════════════════
+class LiquidityEngine:
+    def __init__(self):
+        self.max_allowed_spread_bps = 15.0  # 15 basis points (0.15%) max spread allowed
+
+    def fetch_live_orderbook_metrics(self, pair):
+        """Queries exchange depth to check execution spreads and bids thickness."""
+        symbol = pair.replace("/", "")
+        url = f"https://api.binance.com/api/v3/depth?symbol={symbol}&limit=20"
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                bids = data.get("bids", [])
+                asks = data.get("asks", [])
+                
+                if not bids or not asks:
+                    return None
+                
+                best_bid = float(bids[0][0])
+                best_ask = float(asks[0][0])
+                spread_bps = ((best_ask - best_bid) / best_bid) * 10000
+                
+                bid_volume = sum(float(b[1]) for b in bids[:5])
+                ask_volume = sum(float(a[1]) for a in asks[:5])
+                imbalance_ratio = bid_volume / (bid_volume + ask_volume) if (bid_volume + ask_volume) > 0 else 0.5
+                
+                return {
+                    "best_bid": best_bid,
+                    "best_ask": best_ask,
+                    "spread_bps": round(spread_bps, 2),
+                    "imbalance_ratio": round(imbalance_ratio, 2)
+                }
+        except Exception:
+            pass
+        return None
+
+    def fetch_coinglass_heatmap_data(self, symbol_base):
+        """Mathematical fallback modeling liquidation boundaries around swing levels."""
+        url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol_base}USDT"
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                ticker = r.json()
+                high = float(ticker["highPrice"])
+                low = float(ticker["lowPrice"])
+                return [
+                    {"price": round(high * 1.015, 2), "type": "short_liquidations"},
+                    {"price": round(low * 0.985, 2), "type": "long_liquidations"}
+                ]
+        except:
+            pass
+        return []
+
+    def evaluate_entry_safety(self, pair, direction, entry_price):
+        """Blocks entries directly into thin books or opposite liquidation cascade zones."""
+        symbol_base = pair.split("/")[0]
+        
+        ob_metrics = self.fetch_live_orderbook_metrics(pair)
+        if ob_metrics:
+            if ob_metrics["spread_bps"] > self.max_allowed_spread_bps:
+                return False, f"BANNED: Bid-ask spread too wide ({ob_metrics['spread_bps']} bps). Avoid execution."
+            
+            if direction == "long" and ob_metrics["imbalance_ratio"] < 0.25:
+                return True, "WARNING: Low buy-side orderbook depth. Restricting leverage to 5x."
+            if direction == "short" and ob_metrics["imbalance_ratio"] > 0.75:
+                return True, "WARNING: Low sell-side orderbook depth. Restricting leverage to 5x."
+
+        heatmap = self.fetch_coinglass_heatmap_data(symbol_base)
+        for cluster in heatmap:
+            cluster_price = cluster["price"]
+            distance_pct = abs(entry_price - cluster_price) / entry_price
+            
+            if distance_pct <= 0.01:
+                if direction == "long" and cluster_price < entry_price:
+                    return False, f"BANNED: Entry directly above major Long Liquidation Pool (${cluster_price}). High cascade risk."
+                if direction == "short" and cluster_price > entry_price:
+                    return False, f"BANNED: Entry directly below major Short Liquidation Pool (${cluster_price}). High cascade risk."
+
+        return True, "PASSED: Liquidity and liquidation parameters cleared."
+
 
 # ── Logging & Persistence Helpers ────────────
 def write_thinking_log(message):
@@ -80,19 +265,20 @@ def write_thinking_log(message):
     except Exception as e:
         print(f"Log write failed: {e}")
 
-def log_trade(pair, direction, entry, sl, tp, close, pnl, status, mode, reason):
+def log_trade(pair, direction, entry, sl, tp, close, pnl, status, mode, reason, rsi_entry=50, adx_entry=20):
     exists = os.path.exists(LOG_FILE)
     with open(LOG_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         if not exists:
-            w.writerow(["time", "pair", "direction", "mode", "entry", "sl", "tp", "close", "pnl", "status", "reason"])
+            w.writerow(["time", "pair", "direction", "mode", "entry", "sl", "tp", "close", "pnl", "status", "reason", "rsi_entry", "adx_entry"])
         w.writerow([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             pair, direction, mode,
             round(entry, 4), round(sl, 4), round(tp, 4),
             round(close, 4) if close is not None else "",
             round(pnl, 2)   if pnl   is not None else "",
-            status, reason.replace("\n", " ")
+            status, reason.replace("\n", " "),
+            round(rsi_entry, 1), round(adx_entry, 1)
         ])
 
 def save_balance():
@@ -193,164 +379,18 @@ def maybe_morning_report():
             return
         try:
             df      = pd.read_csv(LOG_FILE, on_bad_lines="skip")
+            df["time"] = df["time"].astype(str)
             yest    = df[df["time"].str.startswith((now - timedelta(days=1)).strftime("%Y-%m-%d"))]
             closed  = yest[yest["status"] == "closed"].copy()
             closed["pnl"] = pd.to_numeric(closed["pnl"], errors="coerce")
-            closed  = closed.dropna(subset=["pnl"])
+            closed = closed.dropna(subset=["pnl"])
             wins    = len(closed[closed["pnl"] > 0])
             losses  = len(closed[closed["pnl"] <= 0])
             pnl     = round(closed["pnl"].sum(), 2) if len(closed) > 0 else 0
             watching = ", ".join(PAIRS)
             alert_morning_report(pnl, len(closed), wins, losses, watching)
-        except:
-            pass
-
-def reflect_on_loss(pair, direction, entry, close, pnl, reason):
-    write_thinking_log(f"Initiating reflective analysis for loss on {pair}...")
-    try:
-        import config
-        GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
-    except ImportError:
-        return
-
-    if not GEMINI_API_KEY or GEMINI_API_KEY == "AIzaSyYourKeyHere":
-        return
-
-    df = get_candles(pair, "15m", limit=30)
-    market_state = "No chart history"
-    if df is not None and len(df) >= 20:
-        market_state = f"Closing price: ${df['close'].iloc[-1]} | RSI: {round(float(calc_rsi(df['close']).iloc[-1]),1)}"
-
-    prompt = f"""
-    Act as an elite quantitative analyst and machine learning compiler.
-    We just closed a {direction.upper()} trade on {pair} at a LOSS of ${abs(pnl):.2f}.
-    
-    Trade Details:
-    - Entry Price: ${entry}
-    - Exit Price: ${close}
-    - Exit Reason: {reason}
-    - Technical Context: {market_state}
-
-    Task:
-    Analyze why this trade failed. Write a single, highly strict, one-sentence operational rule (in plain English) to prevent us from taking this exact losing trade setup again.
-    Do not write conversational filler, explanations, or introductory fluff. Only write the rule.
-    
-    Output format:
-    "Do not enter [asset] [direction] if [exact technical condition we must avoid]."
-    """
-
-    GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.15}
-    }
-
-    try:
-        r = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=30)
-        if r.status_code == 200:
-            lesson = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-            lessons = []
-            if os.path.exists(LESSONS_FILE):
-                try:
-                    with open(LESSONS_FILE, "r") as f:
-                        lessons = json.load(f)
-                except:
-                    pass
-            
-            lessons.append({
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "pair": pair,
-                "pnl": pnl,
-                "rule": lesson
-            })
-            lessons = lessons[-15:] 
-            with open(LESSONS_FILE, "w") as f:
-                json.dump(lessons, f, indent=2)
-            write_thinking_log(f"Reflective Learning complete. New rule hardcoded: '{lesson}'")
-    except Exception as e:
-        write_thinking_log(f"Error during reflective learning loop: {e}")
-
-def send_daily_ledger_email():
-    now = datetime.now()
-    today_str = now.strftime("%Y-%m-%d")
-    if not os.path.exists(LOG_FILE):
-        return
-
-    try:
-        df = pd.read_csv(LOG_FILE, on_bad_lines="skip")
-        today_trades = df[(df["status"] == "closed") & (df["time"].str.startswith(today_str))].copy()
-        
-        total_qty = len(today_trades)
-        today_trades["pnl"] = pd.to_numeric(today_trades["pnl"], errors="coerce")
-        today_trades = today_trades.dropna(subset=["pnl"])
-        
-        wins = len(today_trades[today_trades["pnl"] > 0])
-        losses = len(today_trades[today_trades["pnl"] <= 0])
-        win_rate = round(wins / total_qty * 100, 1) if total_qty > 0 else 0.0
-        
-        gross_profit = today_trades[today_trades["pnl"] > 0]["pnl"].sum()
-        gross_loss = abs(today_trades[today_trades["pnl"] <= 0]["pnl"].sum())
-        net_pnl = gross_profit - gross_loss
-        
-        subject = f"Tess End-of-Day Ledger — {now.strftime('%A, %d %B')} [PnL: {round(net_pnl,2):+f} USD]"
-        rows_html = ""
-        if total_qty > 0:
-            for _, t in today_trades.iterrows():
-                pnl_color = "#10b981" if t["pnl"] > 0 else "#f43f5e"
-                pnl_sign = "+" if t["pnl"] > 0 else ""
-                rows_html += f"""
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 10px; font-weight: bold;">{t['pair']}</td>
-                    <td style="padding: 10px; text-transform: uppercase;">{t['direction']}</td>
-                    <td style="padding: 10px;">${float(t['entry']):,.2f}</td>
-                    <td style="padding: 10px;">${float(t['close']):,.2f}</td>
-                    <td style="padding: 10px; color: {pnl_color}; font-weight: bold;">{pnl_sign}${float(t['pnl']):,.2f}</td>
-                    <td style="padding: 10px; font-size: 11px; color: #666;">{t['reason']}</td>
-                </tr>
-                """
-        else:
-            rows_html = "<tr><td colspan='6' style='padding: 20px; text-align: center; color: #888;'>No trades executed today. Tess stood aside to protect capital.</td></tr>"
-
-        email_body = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-            <div style="border-bottom: 2px solid #00f0ff; padding-bottom: 10px; margin-bottom: 20px;">
-                <h2 style="margin: 0; color: #111;">Tess Flight Control Ledger</h2>
-                <div style="font-size: 12px; color: #888;">EOD Report · {now.strftime('%d %B %Y')}</div>
-            </div>
-            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                <div><strong>Total Executed:</strong> {total_qty} positions</div>
-                <div><strong>Win Rate:</strong> {win_rate}% ({wins}W / {losses}L)</div>
-                <div><strong>Gross Profit:</strong> ${gross_profit:,.2f}</div>
-                <div><strong>Gross Loss:</strong> ${gross_loss:,.2f}</div>
-                <div style="grid-column: span 2; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; font-size: 16px;">
-                    <strong>Net Daily P&L:</strong> <span style="color: {'#10b981' if net_pnl >= 0 else '#f43f5e'}; font-weight: bold;">{'+' if net_pnl >= 0 else ''}${net_pnl:,.2f} USD</span>
-                </div>
-                <div style="grid-column: span 2; font-size: 16px;">
-                    <strong>Persistent Closing Balance:</strong> <span style="font-weight: bold;">${paper_balance:,.2f} USD (~₹{paper_balance*85:,.0f} INR)</span>
-                </div>
-            </div>
-            <h3 style="color: #333; margin-bottom: 10px;">Today's Execution Logs</h3>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-                <thead>
-                    <tr style="background: #eee; border-bottom: 2px solid #ddd;">
-                        <th style="padding: 10px;">Asset</th>
-                        <th style="padding: 10px;">Dir</th>
-                        <th style="padding: 10px;">Entry</th>
-                        <th style="padding: 10px;">Exit</th>
-                        <th style="padding: 10px;">P&L</th>
-                        <th style="padding: 10px;">Exit Reason</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html}
-                </tbody>
-            </table>
-        </div>
-        """
-        send_email(subject, email_body)
-    except Exception as e:
-        write_thinking_log(f"Error compiling EOD Daily Ledger email: {e}")
+        except Exception as e:
+            write_thinking_log(f"Error compiling morning report metrics: {e}")
 
 # ── Price & Candle Feeders ───────────────────
 def get_price(pair):
@@ -389,20 +429,25 @@ def get_candles(pair, timeframe, limit=220):
         df["time"] = pd.to_datetime(df["time"], unit="ms")
         return df
     except Exception as e:
-        write_thinking_log(f"Candle error {pair} {timeframe} — {e}")
-        return None
+        write_thinking_log(f"Primary Binance candle fetch failed: {e}. Routing to KuCoin fallback...")
+        try:
+            exchange = ccxt.kucoin({"enableRateLimit": True})
+            ohlcv = exchange.fetch_ohlcv(pair, timeframe, limit=limit)
+            df = pd.DataFrame(
+                ohlcv,
+                columns=["time", "open", "high", "low", "close", "volume"]
+            )
+            df["time"] = pd.to_datetime(df["time"], unit="ms")
+            write_thinking_log(f"KuCoin fallback successful for {pair} ({timeframe}).")
+            return df
+        except Exception as ex:
+            write_thinking_log(f"All database candle fallbacks failed for {pair}: {ex}")
+            
+    return None
 
-# ── Indicators ───────────────────────────────
-def ema(series, period):
-    return series.ewm(span=period, adjust=False).mean()
-
-def calc_rsi(close, period=14):
-    delta = close.diff()
-    gain  = delta.clip(lower=0).rolling(period).mean()
-    loss  = (-delta.clip(upper=0)).rolling(period).mean()
-    rs    = gain / loss
-    return 100 - (100 / (1 + rs))
-
+# ── Indicators (kept here too: enter_trade needs ATR for stop-distance
+#    sizing at execution time — this is separate from strategies.py's copy,
+#    which is used purely for the AI's decision snapshot) ─────────────────
 def calc_atr(df, period=14):
     hl = df["high"] - df["low"]
     hc = (df["high"] - df["close"].shift()).abs()
@@ -410,75 +455,13 @@ def calc_atr(df, period=14):
     tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
     return tr.rolling(period).mean()
 
-def calc_adx(df, period=14):
-    try:
-        high = df["high"]
-        low = df["low"]
-        close = df["close"]
-        plus_dm = high.diff()
-        minus_dm = low.diff()
-        plus_dm[plus_dm < 0] = 0
-        minus_dm[minus_dm < 0] = 0
-        hl = high - low
-        hc = (high - close.shift()).abs()
-        lc = (low - close.shift()).abs()
-        tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
-        atr = tr.rolling(period).mean()
-        plus_di = 100 * (plus_dm.rolling(period).mean() / atr)
-        minus_di = 100 * (minus_dm.rolling(period).mean() / atr)
-        dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di)
-        return dx.rolling(period).mean()
-    except:
-        return pd.Series(0, index=df.index)
-
-def build_market_snapshot(pair):
-    snapshot = {"pair": pair}
-    for label, tf, limit in [("tf_5m", "5m", 100), ("tf_15m", "15m", 100), ("tf_1h", "1h", 100)]:
-        df = get_candles(pair, tf, limit=limit)
-        if df is None or len(df) < 30:
-            snapshot[label] = None
-            continue
-
-        close = df["close"]
-        i = len(df) - 1
-        price = float(close.iloc[i])
-
-        e9  = ema(close, 9)
-        e20 = ema(close, 20)
-        rsi = calc_rsi(close)
-        atr = calc_atr(df)
-        adx_s = calc_adx(df)
-        adx_now = round(float(adx_s.iloc[i]), 1) if not pd.isna(adx_s.iloc[i]) else 0.0
-
-        e200_val = None
-        trend_200 = "insufficient data"
-        if len(close) >= 100:
-            e200 = ema(close, min(200, len(close)-1))
-            e200_val = round(float(e200.iloc[-1]), 4)
-            trend_200 = "above EMA (uptrend)" if price > e200_val else "below EMA (downtrend)"
-
-        ema_cross = "EMA9 above EMA20" if e9.iloc[i] > e20.iloc[i] else "EMA9 below EMA20"
-
-        snapshot[label] = {
-            "timeframe"     : tf,
-            "price"         : round(price, 4),
-            "ema9"          : round(float(e9.iloc[i]), 4),
-            "ema20"         : round(float(e20.iloc[i]), 4),
-            "trend_200"     : trend_200,
-            "ema_cross"     : ema_cross,
-            "rsi"           : round(float(rsi.iloc[i]), 1),
-            "atr"           : round(float(atr.iloc[i]), 4),
-            "adx_trend_strength": adx_now
-        }
-    return snapshot
-
-# ── Fractional Risk Sizing Calculator ────────
+# ── Sizing Calculations ──────────────────────
 def calc_leverage_and_size(confidence, atr, price, balance, pair="ETH/USDT"):
     MAX_RISK_PCT = 0.02  
     max_risk_usd = round(balance * MAX_RISK_PCT, 2)
     max_risk_usd = max(2.0, min(max_risk_usd, 6.0)) 
 
-    sl_dist = atr * 1.2
+    sl_dist = atr * 2.5  
     if sl_dist <= 0:
         sl_dist = price * 0.015 
         
@@ -501,138 +484,8 @@ def calc_leverage_and_size(confidence, atr, price, balance, pair="ETH/USDT"):
 
     return available_margin, leverage, size, exp_profit, true_max_loss, fees
 
-# ── Agentic AI Decision Loop ─────────────────
-def ask_tess(market_snapshots, open_positions, balance, daily_pnl, recent_trades, soft_limit_active):
-    global next_planned_trade
-    trade_summary = []
-    for t in recent_trades[-15:]:  
-        trade_summary.append({
-            "pair"     : t.get("pair"),
-            "direction": t.get("direction"),
-            "pnl"      : t.get("pnl"),
-            "reason"   : t.get("reason", "")[:60],
-        })
-
-    lessons_context = ""
-    if os.path.exists(LESSONS_FILE):
-        try:
-            with open(LESSONS_FILE, "r") as f:
-                lessons_list = json.load(f)
-            if lessons_list:
-                lessons_context = "\n══════════════════════════════════════\nCOGNITIVE MEMORY: LESSONS FROM PAST FAILURES\n══════════════════════════════════════\n"
-                for idx, l in enumerate(lessons_list, 1):
-                    lessons_context += f"{idx}. {l['rule']} (Closed in loss of ${abs(l['pnl']):.2f})\n"
-        except:
-            pass
-
-    prompt = f"""You are Tess, an autonomous AI trading companion.
-Analyze these indicators across 3 timeframes (5m, 15m, 1h) and output trading decisions.
-
-{lessons_context}
-
-══════════════════════════════════════
-ACCOUNT STATUS
-══════════════════════════════════════
-Balance: ${balance:.2f} USD
-Today P&L: ${daily_pnl:+.2f}
-Open positions: {json.dumps(list(open_positions.keys())) if open_positions else "none"}
-
-══════════════════════════════════════
-HISTORICAL MEMORY (Learn from past results)
-══════════════════════════════════════
-{json.dumps(trade_summary, indent=2)}
-
-══════════════════════════════════════
-LIVE MARKET snap (5m, 15m, 1H)
-══════════════════════════════════════
-{json.dumps(market_snapshots, indent=2)}
-
-Think systematically:
-1. Ensure the trend on 5m, 15m, and 1h is aligned. No counter-trend trades.
-2. If scalp mode is chosen, the target must easily cover fees.
-3. If past history shows repeated losses on a specific asset today, stand aside.
-4. Strictly obey our COGNITIVE MEMORY. If a setup violates any lesson, skip it.
-
-Output format MUST be raw JSON:
-{{
-  "decisions": [
-    {{
-      "pair": "ETH/USDT" or "SOL/USDT" or "BTC/USDT" or "XAUT/USDT",
-      "action": "long" or "short" or "skip",
-      "trade_type": "scalp" or "swing",
-      "confidence": 0-100,
-      "entry_price": number,
-      "sl_price": number,
-      "tp_price": number,
-      "reasoning": "your detailed reasoning"
-    }}
-  ]
-}}"""
-
-    # 1. Try Google Gemini Pro First
-    try:
-        import config
-        GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", "")
-    except ImportError:
-        GEMINI_API_KEY = ""
-
-    if GEMINI_API_KEY and GEMINI_API_KEY != "AIzaSyYourKeyHere" and GEMINI_API_KEY != "":
-        GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}"
-        headers = {"Content-Type": "application/json"}
-        payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }],
-            "generationConfig": {
-                "temperature": 0.1,  
-                "responseMimeType": "application/json" 
-            }
-        }
-        try:
-            r = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=35)
-            if r.status_code == 200:
-                raw = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-                raw = raw.replace("```json", "").replace("```", "").strip()
-                parsed = json.loads(raw)
-                
-                decision = parsed.get("decisions", [{}])[0]
-                if decision.get("action") == "skip":
-                    next_planned_trade = f"Market Scan: Standby. Skipping entries due to: {decision.get('reasoning')[:100]}..."
-                else:
-                    next_planned_trade = f"Planned Setup: {decision.get('trade_type','').upper()} {decision.get('pair')} {decision.get('action','').upper()} | Confidence: {decision.get('confidence')}%"
-
-                return parsed
-        except Exception as e:
-            write_thinking_log(f"Gemini Pro Trading Engine error: {e}")
-
-    # 2. Fallback to Groq if Gemini fails
-    headers = {"Authorization": f"Bearer {GROQ_API_KEY_2}", "Content-Type": "application/json"}
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.25,
-        "max_tokens": 1200,
-    }
-    try:
-        r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=35)
-        if r.status_code == 200:
-            raw = r.json()["choices"][0]["message"]["content"].strip()
-            raw = raw.replace("```json", "").replace("```", "").strip()
-            parsed = json.loads(raw)
-            
-            decision = parsed.get("decisions", [{}])[0]
-            if decision.get("action") == "skip":
-                next_planned_trade = f"Market Scan: Standby. Skipping entries due to: {decision.get('reasoning')[:100]}..."
-            else:
-                next_planned_trade = f"Planned Setup: {decision.get('trade_type','').upper()} {decision.get('pair')} {decision.get('action','').upper()} | Confidence: {decision.get('confidence')}%"
-
-            return parsed
-    except Exception as e:
-        write_thinking_log(f"Groq Trading Engine Fallback error: {e}")
-    return None
-
-# ── Position Execution Management ────────────
-def enter_trade(pair, direction, sl, tp, confidence, reasoning, trade_type, ai_entry_price):
+# ── Direct Execution Logic ───────────────────
+def enter_trade(pair, direction, sl, tp, confidence, reasoning, trade_type, ai_entry_price, override_sizing=None):
     global paper_balance, open_positions, daily_trades
 
     price = get_price(pair)
@@ -645,19 +498,30 @@ def enter_trade(pair, direction, sl, tp, confidence, reasoning, trade_type, ai_e
         atr_s = calc_atr(df_15m)
         atr_val = float(atr_s.iloc[-1]) if not pd.isna(atr_s.iloc[-1]) else 0.5
 
-    capital, leverage, size, exp_profit, max_loss, fees = calc_leverage_and_size(
-        confidence, atr_val, price, paper_balance, pair
-    )
+    if override_sizing:
+        # Manual override trade — honor the exact size/leverage/margin already
+        # computed by chat_listener.py instead of recalculating from scratch.
+        leverage = override_sizing.get("leverage", 20)
+        size = override_sizing.get("size")
+        capital = override_sizing.get("margin_usd", paper_balance * 0.12)
+        sl_dist = abs(price - sl) if sl else atr_val * 2.5
+        tp_dist = abs(tp - price) if tp else sl_dist * REWARD_TO_RISK
+        exp_profit = round(size * tp_dist, 2)
+        fees = round(size * price * TAKER_FEE_PCT * 2, 4)
+    else:
+        capital, leverage, size, exp_profit, max_loss, fees = calc_leverage_and_size(
+            confidence, atr_val, price, paper_balance, pair
+        )
 
     if tp is None or sl is None:
-        sl_dist = atr_val * 1.2
+        sl_dist = atr_val * 2.5
         tp_dist = sl_dist * REWARD_TO_RISK
         sl = round(price - sl_dist, 4) if direction == "long" else round(price + sl_dist, 4)
         tp = round(price + tp_dist, 4) if direction == "long" else round(price - tp_dist, 4)
 
     net_profit = exp_profit - fees
     if net_profit < 2.50:
-        write_thinking_log(f"Expected reward is too narrow to justify taker fees: ${net_profit:.2f}. Skip.")
+        write_thinking_log(f"Sizing model rejected: expected reward too narrow: ${net_profit:.2f}.")
         return
 
     open_positions[pair] = {
@@ -742,9 +606,12 @@ def check_open_positions():
         fees_approx = capital * leverage * TAKER_FEE_PCT * 2
         net_now = unreal - fees_approx
 
+        # Swing trades get a stagnation exit after 6 hours if going nowhere.
+        # Position trades are meant to be patient — no forced timeout, they
+        # rely purely on SL/TP.
         force_scalp_exit = (
-            trade_type == "scalp"
-            and elapsed >= 840
+            trade_type == "swing"
+            and elapsed >= 21600
             and net_now < 3.00 
         )
 
@@ -760,10 +627,6 @@ def check_open_positions():
             if pnl < 0:
                 daily_loss += abs(pnl)
                 consecutive_losses += 1
-                
-                # Dynamic Reflective Machine Learning
-                reflect_thread = threading.Thread(target=reflect_on_loss, args=(pair, direction, entry, price, pnl, reason))
-                reflect_thread.start()
             else:
                 daily_profit += pnl
                 consecutive_losses = 0
@@ -787,13 +650,15 @@ def check_open_positions():
                 kill_switch_hit = True
                 alert_kill_switch(daily_loss, DAILY_LOSS_LIMIT)
 
-# ── Main Run Loop ────────────────────────────
 def run():
     global kill_switch_hit, daily_loss, daily_profit, daily_trades, last_day, scan_count, cooldown_until, consecutive_losses
-    global PAIRS, PAIR_RULES, MAX_OPEN_POSITIONS, last_daily_ledger_day  
+    global PAIRS, PAIR_RULES, MAX_OPEN_POSITIONS, last_daily_ledger_day, next_planned_trade
     
     load_positions()
     load_balance()  
+
+    recent_trades = load_recent_trades(100)
+    MemorySynthesizer.update_lesson_cache(recent_trades)
 
     if os.path.exists(CONFIG_FILE):
         try:
@@ -821,6 +686,7 @@ def run():
             consecutive_losses = 0
             cooldown_until = None
             last_day = now.date()
+            print(f"\n[{now.strftime('%H:%M:%S')}] Day transition detected. Counters reset.")
             write_thinking_log("Day transition detected. Counters reset.")
 
         if kill_switch_hit:
@@ -835,6 +701,7 @@ def run():
             check_open_positions()
 
         scan_count += 1
+        print(f"\n[{now.strftime('%H:%M:%S')}] Executing Scan #{scan_count}...")
         write_thinking_log(f"Executing Scan #{scan_count}")
 
         if len(open_positions) < MAX_OPEN_POSITIONS:
@@ -842,29 +709,60 @@ def run():
             for pair in PAIRS:
                 if pair in open_positions:
                     continue
-                snap = build_market_snapshot(pair)
+
+                candles = {}
+                for label, tf, limit in strategies.TIMEFRAMES:
+                    candles[label] = get_candles(pair, tf, limit=limit)
+
+                snap = strategies.build_market_snapshot(pair, candles)
+                if not snap or not snap.get("tf_1h"):
+                    print(f" ⚠️  Setup skipped for {pair}: Insufficient API snapshot data.")
+                    continue
+
                 market_data[pair] = snap
+                print(f" -> {pair}: Snap loaded (15m/1h/4h). Querying Nemotron-550B...")
                 time.sleep(1)
 
             if market_data:
                 recent = load_recent_trades(15)
-                ai_response = ask_tess(
+                ai_response, decision_summary, reasoning_trace = strategies.ask_tess(
                     market_snapshots=market_data,
                     open_positions=open_positions,
                     balance=paper_balance,
                     daily_pnl=(daily_profit - daily_loss),
                     recent_trades=recent,
-                    soft_limit_active=(daily_loss >= SOFT_LOSS_LIMIT)
+                    lessons_context=MemorySynthesizer.build_prompt_block()
                 )
+                if decision_summary:
+                    next_planned_trade = decision_summary
+                    print(f"[Tess] Decision: {decision_summary}")
+                if reasoning_trace:
+                    write_thinking_log(f"Nemotron-550B Thinking Trace:\n{reasoning_trace}\n[End of Trace]")
+                elif ai_response is None:
+                    write_thinking_log(reasoning_trace or "Nemotron call failed with no detail.")
 
                 if ai_response:
                     for decision in ai_response.get("decisions", []):
                         pair = decision.get("pair")
                         action = decision.get("action", "skip")
 
-                        write_thinking_log(f"AI Choice for {pair}: {action.upper()} | Reasoning: {decision.get('reasoning')}")
-
                         if action in ("long", "short") and pair not in open_positions:
+                            # ── RUN INTENT-DRIVEN LIQUIDITY & SPREAD SAFETY OVERLAYS ──
+                            from liquidity_engine import LiquidityEngine
+                            liq_engine = LiquidityEngine()
+                            
+                            is_safe, reason = liq_engine.evaluate_entry_safety(
+                                pair=pair,
+                                direction=action,
+                                entry_price=decision.get("entry_price")
+                            )
+                            
+                            if not is_safe:
+                                print(f" ⚠️  Trade Blocked by Liquidity Engine for {pair}: {reason}")
+                                write_thinking_log(f"Liquidity Engine Blocked trade for {pair}: {reason}")
+                                continue
+                                
+                            print(f" ✅  {pair}: Liquidity check passed. Proceeding with execution...")
                             enter_trade(
                                 pair=pair,
                                 direction=action,
@@ -876,19 +774,108 @@ def run():
                                 ai_entry_price=decision.get("entry_price")
                             )
 
-        # Midnight report triggers
         maybe_morning_report()
 
-        # Daily EOD Ledger Email Trigger (Runs every night at 11:55 PM)
         if now.hour == 23 and now.minute >= 55 and last_daily_ledger_day != now.date():
             last_daily_ledger_day = now.date()
+            from chat_listener import send_daily_ledger_email
             report_thread = threading.Thread(target=send_daily_ledger_email)
             report_thread.start()
 
         time.sleep(SCAN_SECONDS)
 
+
+# ══════════════════════════════════════════
+# SECTION 2: APPROVAL GATE (Manual Override / Email-Approved Trades)
+# ══════════════════════════════════════════
+class ApprovalGate:
+    @staticmethod
+    def process_approved_queue():
+        global open_positions
+
+        if not os.path.exists(APPROVED_QUEUE):
+            return
+
+        try:
+            with open(APPROVED_QUEUE, "r") as f:
+                queue = json.load(f)
+        except Exception:
+            return
+
+        if not queue:
+            return
+
+        # Clear the queue immediately to prevent reprocessing the same items
+        # on the next 5-second cycle while we're working through this batch.
+        try:
+            with open(APPROVED_QUEUE, "w") as f:
+                json.dump([], f)
+        except Exception as e:
+            write_thinking_log(f"ApprovalGate: failed to clear queue file: {e}")
+            return
+
+        for item in queue:
+            try:
+                # Case 1: manual override shape -> {"trade": {...}, "sizing": {...}}
+                if "trade" in item:
+                    decision = item["trade"]
+                    override_sizing = item.get("sizing")
+                # Case 2: email-approved proposal -> decision dict directly
+                else:
+                    decision = item
+                    override_sizing = None
+
+                pair = decision.get("pair")
+                action = decision.get("action")
+
+                if not pair or action not in ("long", "short"):
+                    write_thinking_log(f"ApprovalGate: skipped malformed queue item: {item}")
+                    continue
+
+                if pair in open_positions:
+                    write_thinking_log(f"ApprovalGate: skipped {pair} — position already open.")
+                    continue
+
+                if len(open_positions) >= MAX_OPEN_POSITIONS and not override_sizing:
+                    write_thinking_log(f"ApprovalGate: skipped {pair} — max open positions reached.")
+                    continue
+
+                enter_trade(
+                    pair=pair,
+                    direction=action,
+                    sl=decision.get("sl_price"),
+                    tp=decision.get("tp_price"),
+                    confidence=int(decision.get("confidence", 100)),
+                    reasoning=decision.get("reasoning", "Approved via queue."),
+                    trade_type=decision.get("trade_type", "swing"),
+                    ai_entry_price=decision.get("entry_price"),
+                    override_sizing=override_sizing
+                )
+                write_thinking_log(f"ApprovalGate: executed approved trade for {pair} ({action}).")
+
+            except Exception as e:
+                write_thinking_log(f"ApprovalGate: error processing queue item {item}: {e}")
+
+
+def queue_processing_thread():
+    """
+    Dedicated parallel background thread that scans approved_queue.json 
+    every 5 seconds, executing manual overrides instantly.
+    """
+    write_thinking_log("Immediate Executive Approval Queue Thread started.")
+    while True:
+        try:
+            ApprovalGate.process_approved_queue()
+        except Exception as e:
+            write_thinking_log(f"Error in approval queue thread: {e}")
+        time.sleep(5)
+
+
 # ── Flask Server Definition ──────────────────
 app = Flask(__name__, template_folder="templates")
+
+from dev_console import register_dev_console
+register_dev_console(app)
 
 @app.route("/")
 def index():
@@ -903,11 +890,10 @@ def get_status():
     
     if os.path.exists(LOG_FILE):
         try:
-            with open(LOG_FILE, "r", encoding="utf-8", errors="ignore") as f:
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
                 lines = f.readlines()
             
             if len(lines) > 1:
-                # Dynamically normalize both old and new trades.csv headers line-by-line safely
                 headers = [h.strip().lower() for h in lines[0].split(",")]
                 
                 for line in lines[1:]:
@@ -929,9 +915,12 @@ def get_status():
                         status_raw = row.get("status") or row.get("result") or ""
                         reason_raw = row.get("reason") or row.get("exit_type") or ""
                         
-                        pnl_val = float(pnl_raw)
-                        entry_val = float(entry_raw)
-                        close_val = float(close_raw)
+                        try:
+                            pnl_val = float(pnl_raw)
+                            close_val = float(close_raw)
+                            entry_val = float(entry_raw)
+                        except:
+                            continue
                         
                         is_closed = (
                             status_raw.lower() in ("closed", "win", "loss") or 
@@ -939,12 +928,11 @@ def get_status():
                         )
                         
                         if is_closed:
-                            # Accumulate Gross Totals
                             if pnl_val > 0:
                                 total_profit_td += pnl_val
                             else:
                                 total_loss_td += abs(pnl_val)
-                                
+                            
                             trades.append({
                                 "time": time_raw,
                                 "pair": pair_raw,
@@ -956,12 +944,12 @@ def get_status():
                                 "reason": reason_raw
                             })
                     except:
-                        continue 
+                        continue
                         
-            trades.reverse()
-            trades = trades[:20]
+                trades.reverse()
+                trades = trades[:20]
         except Exception as e:
-            print(f"Error parsing trades.csv line-by-line: {e}")
+            print(f"Error parsing status trades: {e}")
             
     load_balance()
     return jsonify({
@@ -973,6 +961,135 @@ def get_status():
         "total_loss_td": round(total_loss_td, 2)
     })
 
+# --- OVERRIDDEN DIRECT LOG FILE ARCHIVE ENGINE ---
+@app.route("/api/trades")
+def get_trades():
+    limit = min(int(request.args.get("limit", 50)), 500)
+    offset = max(int(request.args.get("offset", 0)), 0)
+    status_filter = request.args.get("status", "all").lower()
+    pair_filter = request.args.get("pair", "all").lower()
+    search = request.args.get("q", "").strip().lower()
+
+    trades = []
+    if os.path.exists(LOG_FILE):
+        try:
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # Multi-null checks prevents NoneType crashes on trailing commas
+                    normalized_row = {k.strip().lower(): v for k, v in row.items() if k is not None}
+                    
+                    p_status = normalized_row.get("status", "closed").lower()
+                    p_pair = normalized_row.get("pair", "").lower()
+                    p_reason = normalized_row.get("reason", "").lower()
+                    p_direction = normalized_row.get("direction", "").lower()
+                    
+                    if status_filter != "all" and p_status != status_filter:
+                        continue
+                    if pair_filter != "all" and p_pair != pair_filter:
+                        continue
+                    if search:
+                        if search not in p_pair and search not in p_reason and search not in p_direction:
+                            continue
+                            
+                    try:
+                        pnl_val = normalized_row.get("pnl")
+                        pnl_float = float(pnl_val) if pnl_val and pnl_val.strip() else ""
+                    except:
+                        pnl_float = ""
+
+                    trades.append({
+                        "time": normalized_row.get("time", ""),
+                        "pair": normalized_row.get("pair", "").upper(),
+                        "direction": normalized_row.get("direction", "").upper(),
+                        "mode": normalized_row.get("mode", ""),
+                        "entry": float(normalized_row.get("entry", 0) or 0),
+                        "sl": float(normalized_row.get("sl", 0) or 0),
+                        "tp": float(normalized_row.get("tp", 0) or 0),
+                        "close": float(normalized_row.get("close", 0) or 0) if normalized_row.get("close") else "",
+                        "pnl": pnl_float,
+                        "status": normalized_row.get("status", "closed"),
+                        "reason": normalized_row.get("reason", "")
+                    })
+        except Exception as e:
+            print(f"Error compiling direct archive trades: {e}")
+
+    # Compute operational statistics dynamically from history file
+    total_trades = len(trades)
+    wins = sum(1 for t in trades if t["pnl"] != "" and float(t["pnl"]) > 0)
+    losses = sum(1 for t in trades if t["pnl"] != "" and float(t["pnl"]) <= 0)
+    win_rate = round((wins / total_trades) * 100, 1) if total_trades > 0 else 0.0
+    net_pnl = round(sum(float(t["pnl"]) for t in trades if t["pnl"] != ""), 2)
+    best_trade = round(max((float(t["pnl"]) for t in trades if t["pnl"] != ""), default=0), 2)
+
+    trades.reverse()
+    paged_trades = trades[offset : offset + limit]
+    pairs = sorted(list({t["pair"] for t in trades if t["pair"]}))
+
+    return jsonify({
+        "trades": paged_trades,
+        "total": len(trades),
+        "offset": offset,
+        "limit": limit,
+        "stats": {
+            "total": total_trades,
+            "wins": wins,
+            "losses": losses,
+            "winrate": win_rate,
+            "net": net_pnl,
+            "best": best_trade
+        },
+        "pairs": pairs
+    })
+
+@app.route("/api/config")
+def get_config():
+    cfg = fcs_api.load_dynamic_config()
+    balance = fcs_api.load_balance()
+    return jsonify({
+        "config": cfg,
+        "balance": balance,
+        "risk_per_trade_pct": 2.0,
+        "risk_per_trade_usd": round(min(max(balance * 0.02, 2.0), 6.0), 2),
+        "daily_loss_limit": 12.0,
+        "soft_loss_limit": 6.0,
+        "reward_to_risk": 3.5,
+        "max_open_positions": cfg.get("max_open_positions", 2),
+    })
+
+@app.route("/api/system/files")
+def system_files():
+    return jsonify({"files": fcs_api.list_system_files()})
+
+@app.route("/api/system/file/<path:filename>")
+def system_file(filename):
+    data = fcs_api.read_system_file(filename)
+    if not data:
+        return jsonify({"error": "File not found or not allowed"}), 404
+    return jsonify(data)
+
+@app.route("/api/system/logs")
+def system_logs():
+    lines = int(request.args.get("lines", 100))
+    log_lines = fcs_api.tail_thinking_log(min(lines, 500))
+    feed = fcs_api.parse_scan_feed(log_lines)
+    return jsonify({"lines": log_lines, "feed": feed})
+
+@app.route("/api/market/news")
+def market_news():
+    limit = min(int(request.args.get("limit", 15)), 30)
+    return jsonify({"news": fcs_api.fetch_market_news(limit)})
+
+@app.route("/api/market/prices")
+def market_prices():
+    cfg = fcs_api.load_dynamic_config()
+    prices = {}
+    for pair in cfg.get("active_pairs", list(fcs_api.COIN_IDS.keys())):
+        p = fcs_api.get_price(pair)
+        if p:
+            prices[pair] = round(p, 4)
+    return jsonify({"prices": prices, "timestamp": datetime.now().strftime("%H:%M:%S")})
+
 @app.route("/api/voice_command", methods=["POST"])
 def voice_command():
     from chat_listener import generate_conversation_reply
@@ -983,13 +1100,40 @@ def voice_command():
     reply = generate_conversation_reply(command)
     return jsonify({"reply": reply})
 
+@app.route("/api/chat_history")
+def get_chat_history():
+    from chat_listener import CHAT_HISTORY_FILE
+    if os.path.exists(CHAT_HISTORY_FILE):
+        try:
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                history = json.load(f)
+                return jsonify({"history": history})
+        except:
+            pass
+    return jsonify({"history": []})
+
 def run_flask():
-    """Runs the web server in the main thread with Hot-Reload enabled."""
+    """Runs the web server in the main thread with Hot-Reload cleanly re-enabled."""
     import logging
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR) 
     print("[Tess Cockpit] Live dashboard active at: http://localhost:5000")
     app.run(port=5000, host="0.0.0.0", use_reloader=True)
+
+
+
+def telegram_loop():
+    """
+    Background loop that continuously checks for your mobile Telegram commands.
+    """
+    try:
+        # Dynamically import the check function from chat_listener to prevent circular imports
+        from chat_listener import check_telegram_commands
+        write_thinking_log("Conversational Telegram listener thread started.")
+        check_telegram_commands()
+    except Exception as e:
+        write_thinking_log(f"Telegram listener loop encountered an error: {e}")
+
 
 if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
@@ -1005,6 +1149,14 @@ if __name__ == "__main__":
             listener_thread.start()
         except Exception as e:
             print(f"[Tess] Conversational listener thread failed to start: {e}")
+
+        # --- Start the Mobile Telegram Bot Thread ---
+        tg_thread = threading.Thread(target=telegram_loop, daemon=True)
+        tg_thread.start()
+
+        # Start immediate executive approval queue processor thread
+        queue_thread = threading.Thread(target=queue_processing_thread, daemon=True)
+        queue_thread.start()
 
         scanner_thread = threading.Thread(target=run, daemon=True)
         scanner_thread.start()

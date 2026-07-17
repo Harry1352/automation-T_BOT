@@ -1,12 +1,3 @@
 {
-  "active_pairs": [
-    "XAUT/USDT",
-    "BTC/USDT",
-    "ETH/USDT",
-    "SOL/USDT"
-  ],
-  "weekly_target_usd": 100,
-  "cancel_trade": "SOL/USDT",
-  "close_position": "ETH/USDT",
-  "potential_balance_update": 1000
+  "capped_risk": 9.59
 }

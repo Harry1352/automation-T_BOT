@@ -1,4 +1,19 @@
-tess_env/
+# Python compilation caches
 __pycache__/
 *.pyc
-trades.csv
+*.pyo
+*.pyd
+
+# Local Virtual Environment
+tess_env/
+
+# Secure Credentials (NEVER PUSH THESE)
+.env
+keys.py
+
+# Local Runtime Databases & Logs (Tess's Diary)
+.tess_diary/
+*.db
+*.csv
+*.json
+*.log
