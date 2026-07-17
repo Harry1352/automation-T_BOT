@@ -1,5 +1,23 @@
-              SYSTEM ARCHITECTURE BLUEPRINT #T_BOT PROJECT /TESSWORKS PRODUCTION UNIT (TPU)
+# TESS — Autonomous Crypto Trading Cockpit
+                                                                         T_BOT PROJECT /TessWorks Production Unit (TPU)
 
+> **TESSWORKS Quantitative Systems**
+> Version: v13.0 · Dual-Model Reasoning · Dev Console Enabled
+> A modular, multi-timeframe, human-in-the-loop paper-trading agent — with an embedded AI assistant that edits its own source code.
+
+---
+
+## 1.0 Overview
+
+Tess is a locally-run autonomous trading cockpit for crypto perpetuals (ETH, SOL, BTC, XAUT), built around a strict separation of concerns: raw market data ingestion, indicator computation, AI-driven trade decisions, position execution, and risk enforcement are each isolated into their own layer. No single component both decides a trade and executes it unchecked — every path, whether AI-generated or manually issued by voice/chat, passes through the same hard-capped risk gate.
+
+Currently runs in **paper trading mode**. Delta Exchange India credentials are present in the credential layer for a future live-execution phase, but no live order routing exists yet.
+
+---
+
+## 2.0 System Architecture
+
+```text
 [ USER INTERFACE LAYER ]
   └── Flask Cockpit — http://localhost:5000
         ├── Cockpit          — live positions, P&L, TradingView charts
@@ -7,15 +25,13 @@
         ├── Market Intel     — live prices, news feed
         ├── System Code      — raw thinking-log tail, scan feed
         ├── Configuration    — risk limits, active pairs
-        └── Dev Console      — chat-driven code editor (see 3.8)
+        └── Dev Console      — chat-driven code editor (see 2.4)
               │
               ▼
 [ COMMUNICATIONS LAYER ]
   └── chat_listener.py — conversational IMAP email listener + in-dashboard chat
-        ├── AI Core: NVIDIA Nemotron-550B (primary) → Groq Llama 3.3 70B (fallback)
         ├── Persists conversational memory (chat_history.json)
-        ├── Parses manual trade overrides → approved_queue.json
-        └── Hard leverage/margin caps enforced even on manual overrides
+        └── Parses manual trade overrides → approved_queue.json
               │
               ▼
 [ EXECUTION & STATE ENGINE ] — isolated in .tess_diary/ to avoid reload loops
@@ -24,127 +40,89 @@
         ├── Runs a full market scan every 5 minutes
         ├── Manages open positions: breakeven lock, trailing stop, TP/SL
         │
-        ├──► [ LIQUIDITY SHIELD LAYER ]
-        │      └── liquidity_engine.py — pre-trade orderbook validation
-        │             ├── Spread gate — blocks execution on excessive bid-ask spread
-        │             └── Liquidation cascade barrier — avoids entries too close
-        │                 to large opposing liquidation pools
-        │
         └──► [ STRATEGY LAYER — strategies.py ]
-               Pure, stateless decision logic. No network calls, no file I/O.
-               ├── 15m — confirmation only, never a standalone decision basis
-               ├── 1h  — primary trend filter for swing trades
-               ├── 4h  — primary trend filter for position (long-hold) trades
-               └── AI Core: NVIDIA Nemotron-550B (structured JSON output)
-                      — no fallback here; returns no-trade rather than
-                        substituting another model for the actual decision
-                            │
-                            ▼
-[ DEV TOOLING LAYER ] — separate from the trading path entirely
-  └── dev_console.py — powered by Google Gemini 3.5, not Nemotron/Groq
-        ├── Whitelisted file read/write, diff preview before any change
-        └── Backup created automatically before every applied edit
+                Pure, stateless decision logic. No network calls, no file I/O.
+                ├── 15m  — confirmation only, never a standalone decision basis
+                ├── 1h   — primary trend filter for swing trades
+                ├── 4h   — primary trend filter for position (long-hold) trades
+                └── AI Core: NVIDIA Nemotron-550B (structured JSON output)
+                       └── Fallback: Groq Llama 3.3 70B on failure
+```
 
-[ OFFLINE / RESEARCH TOOLING ] — not part of the live scan loop
-  └── multi_strategy_backtester.py — run manually against historical candles
+---
 
+## 3.0 Core Features
 
+### 3.1 Modular Strategy Decoupling (`strategies.py`)
+All indicator math (EMA9/20, RSI, ATR, ADX), the multi-timeframe policy, and the LLM prompt live in a single stateless module with zero network or disk dependencies. `scanner.py` fetches candles and hands them to `strategies.py`, which returns a decision and nothing else — meaning the strategy can be tuned or unit-tested in complete isolation from execution and the dashboard.
 
+### 3.2 Disciplined Multi-Timeframe Policy
+Tess deliberately does not look at anything faster than 15 minutes. Every decision is required to justify itself against its primary timeframe — 1h for a `swing` call, 4h for a `position` call — with 15m usable only to sanity-check the entry candle. Reasoning that leans on 15m alone is treated as a red flag and steered toward `skip`.
 
-1.1 Architectural Design Philosophy
-    A. Decoupling of Concerns
-The fundamental rule of the TESSWORKS architecture is the absolute separation of Input/Output (I/O) from calculation logic.
-strategies.py is a pure mathematical module. It cannot execute network requests, write files to disk, or check local system states. It receives 
-sanitized dataframes, calculates technical indicators, formats prompts, and queries the AI models.
-scanner.py owns all I/O and process execution. It manages the background network threads, pulls candles from CCXT, starts the Flask server, and manages active database records.
-   B. The Hidden Directory Hack (.tess_diary/)
-To allow you to develop, edit, and hot-reload your code files (scanner.py, strategies.py, chat_listener.py) inside VS Code without causing the running trading bot 
-to crash or reset, all files written by the bot are isolated inside .tess_diary/.
-Because folders starting with a dot are automatically ignored by Flask's Werkzeug reloader, Tess can write to her logs, trade journals, and performance sheets thousands of 
-times per hour without ever triggering a reload. However, the second you save a code change in your root directory, Flask performs a clean, automated hot-refresh of your active trading rules.
-   C. Human-in-the-Loop (HITL) Gatekeeping
-To eliminate the non-deterministic risk of AI-driven trading, Tess runs an approval gate. If a trading signal is generated, 
-Tess writes the details to .tess_diary/pending_approvals.json and dispatches an email/Telegram alert. Only when you issue a 
-manual APPROVE command is the trade moved to .tess_diary/approved_queue.json, where the parallel queue thread executes it instantly.
+### 3.3 Primary Reasoning + Fallback (not a consensus vote)
+Nemotron-550B (NVIDIA NIM, streaming, forced `json_object` output) is the primary decision engine on every scan. Groq's Llama 3.3 70B is a sequential fallback that only engages if the primary call fails outright — it is not run in parallel and does not vote alongside Nemotron.
 
-1.2 Transaction & Scan Life-Cycle (The 5-Minute Loop)
-[ START CYCLE ]
-  │
-  ├──► 1. Read 'approved_queue.json' (Every 5 Seconds)
-  │      └── IF approved trade found: Execute immediately. Clear queue.
-  │
-  ├──► 2. Check Cooldown & Kill-Switches
-  │      └── IF daily loss >= $12.00 or cooldown active: Stand aside.
-  │
-  ├──► 3. Fetch Market Data (Every 5 Minutes)
-  │      └── Query Binance public API via CCXT (Fallback: KuCoin if rate-limited)
-  │
-  ├──► 4. Calculate Technical Indicators (EMA, ATR, ADX, RSI, Crossovers, Pullbacks)
-  │
-  ├──► 5. Query NVIDIA Nemotron-550B Reasoning Engine
-  │      └── Provide: 15m/1h/4h Snapshot + sqlite3 Failure History + Balance State
-  │
-  ├──► 6. Evaluate Liquidity Shield (On Proposed Signal)
-  │      ├── Spread Check: If spread > 15 bps -> BLOCK trade.
-  │      └── Heatmap Check: If entry sits on opposite liquidation pool -> BLOCK trade.
-  │
-  ├──► 7. Create Proposal (If cleared)
-  │      └── Write to pending_approvals.json -> Dispatch Telegram/Email alert.
-  │
-[ END CYCLE ]
+### 3.4 Human-in-the-Loop Approval Gate
+Manual trade commands — issued via the dashboard chat or email — are parsed, sized, and placed into `approved_queue.json`, then picked up by a dedicated 5-second polling thread (`ApprovalGate`) for execution. Critically, hard leverage and position-size caps apply identically to AI-generated and manually-issued trades — a forceful or persistent chat command cannot push the system past its configured risk ceiling.
 
+### 3.5 Cognitive Memory (`MemorySynthesizer`)
+Losing trades are clustered by pair, direction, and market regime (RSI/ADX buckets) into a rolling "lessons" cache, which is injected into every future prompt so Tess is explicitly warned away from patterns that have repeatedly lost money.
 
+### 3.6 In-Dashboard Dev Console
+A separate chat panel, powered by **Google Gemini 3.5** — a deliberately different model from the trading core, so a code-editing session can never influence a live trade decision. Points at a whitelisted set of source files, proposes full-file rewrites with a unified diff for review, and only writes to disk after an explicit "Apply" click. Every apply is preceded by a timestamped backup.
 
+### 3.7 Credential Isolation & Safe Hot-Reload
+All secrets live in a git-ignored `.env`, loaded through `keys.py` and never touched by the Dev Console's file whitelist. Runtime state, logs, and trade history are redirected into a hidden `.tess_diary/` directory so Flask's file-watcher doesn't trigger reload loops while actively developing.
 
-       Project Overview 
-The Tess Flight Control System (FCS) is a modular, high-speed quantitative paper-trading application designed for macOS. 
-It fully decouples your core analytical strategy layers from background execution loops, allowing you to safely test automated algorithms, manage system states, 
-and monitor performance in real-time through a local web dashboard or private mobile Telegram integrations.
+---
 
+## 4.0 Installation
 
-     Core File Directory Map:
-- keys.py: Securely loads your private exchange keys, Gmail tokens, and LLM passwords dynamically from your local environment.
-- config.py: Centrally registers your baseline risk parameters, active watchlists, and strategy-specific rules.
-- strategies.py: Implements your technical indicators and formats the data snapshots evaluated by the Nvidia Nemotron-550B engine.
-- liquidity_engine.py: Audits live orderbook spreads and liquidation heatmaps to protect your capital from slippage and cascades.
-- scanner.py: Orchestrates the 5-minute background scanning thread, manages active open positions, and runs the web cockpit.
-- chat_listener.py: Operates your mobile interfaces, including the Telegram Bot thread and the email approval dispatcher.
-- multi_strategy_backtester.py: A standalone research tool to simulate and compare different quantitative strategies over historical data.
+### 4.1 Environment
 
+```bash
+cd ~/Desktop/T_BOT
+source tess_env/bin/activate
+pip install ccxt pandas numpy flask requests python-dotenv openai
+```
 
+### 4.2 Environment Variables
 
-      Key Operational Functions:
-1. RuleValidator.check_multi_timeframe_alignment (scanner.py)
-- Purpose: This function determines if the trend is aligned across multiple timeframes. If the timeframes disagree or the market is moving sideways, it stands aside to protect capital.
-- Example: If the 15-minute chart is trending downward, but the 1-hour and 4-hour charts are in a strong uptrend, this function flags a "MTF Mismatch" and blocks the trade.
-  
-2. calc_leverage_and_size (scanner.py)
-- Purpose: Calculates your exact position size based on current volatility and a strict maximum risk limit.
-- Example: If your account balance is 180 and yout max risk is 23.60, this function reads the ATR volatility. If volatility is high,
-   it automatically widens your Stop Loss and decreases your contract size so you never risk more than $3.60 on the trade.
-  
-3. ApprovalGate.create_proposal (scanner.py / chat_listener.py)
-- Purpose: Serves as your manual "Human-in-the-Loop" gatekeeper. It holds proposed trades in a pending queue until you authorize execution.
-- Example: When Tess generates a trade setup, this function packages the entry, SL, and TP into an alert message.
-  It sends this to your phone via Telegram with interactive buttons, pausing the trade until you tap APPROVE.
+Create `.env` in the project root:
 
+```env
+DELTA_API_KEY=your_delta_exchange_api_key
+DELTA_API_SECRET=your_delta_exchange_secret
+NVIDIA_NEMOTRON_KEY=your_nvidia_nim_key
+GROQ_API_KEY_2=your_groq_fallback_key
+GOOGLE_STUDIO_API_KEY=your_google_ai_studio_key
+TESS_GMAIL=your_bot_gmail_address
+TESS_GMAIL_APP_PASSWORD=your_gmail_app_password
+YOUR_EMAIL=your_personal_email
+```
 
+### 4.3 Run
 
+```bash
+caffeinate python3 scanner.py
+```
 
+- Dashboard: `http://localhost:5000`
+- Every panel — Cockpit, Trade Archive, Market Intel, System Code, Configuration, Dev Console — lives in this single interface.
 
+---
 
+## 5.0 Roadmap
 
+Not yet implemented — listed here deliberately as future work, not current capability:
 
+- **Live execution** via Delta Exchange India (currently paper-mode only)
+- **Orderbook microstructure shield** — pre-trade spread and liquidation-cascade checks
+- **Telegram command interface**, alongside the existing email/dashboard channels
+- **Multi-strategy backtester** for comparing EMA-based logic against alternative strategies on historical data
 
+---
 
+## 6.0 Disclaimer
 
-
-
-
-
-
-
-
-
-
-  
+Tess is an educational quantitative research project for automated paper trading and system simulation. Nothing in this repository — code, strategy logic, or AI-generated reasoning — constitutes financial or investment advice. Algorithmic trading, leverage, and cryptocurrency derivatives carry substantial risk of capital loss. Historical or simulated performance is not indicative of future results.
