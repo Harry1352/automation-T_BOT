@@ -1,4 +1,4 @@
-# TESS — Setup & Run Guide
+# TESS — Setup & Run Guide (T_BOT /THORFINN SPL ACCSESS ONLY)
 
 This walks a first-time user through everything needed to get Tess running locally, on macOS or Windows, from a clean machine.
 
