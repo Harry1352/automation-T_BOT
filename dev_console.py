@@ -31,12 +31,15 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 # or anything holding secrets.
 FILE_WHITELIST = [
     "scanner.py",
-    "brain.py",
+    "strategies.py",       # FIX: this is the actual decision logic -- was missing
+    "liquidity_engine.py", # FIX: the real safety-gate file -- was missing
     "config.py",
     "alerts.py",
     "chat_listener.py",
     "fcs_api.py",
-    "web_gui.py",
+    # "brain.py" and "web_gui.py" removed -- legacy/dead files, not part of
+    # the live pipeline. Re-add only if you confirm scanner.py actually
+    # imports them.
 ]
 
 MAX_FILE_CHARS_FOR_PROMPT = 40000  # guard against blowing the context window

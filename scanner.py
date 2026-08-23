@@ -457,6 +457,17 @@ def calc_atr(df, period=14):
 
 # ── Sizing Calculations ──────────────────────
 def calc_leverage_and_size(confidence, atr, price, balance, pair="ETH/USDT"):
+    """
+    FIXED v12.14: the previous version computed `size` from the 2% risk
+    budget, then threw that number away and recomputed size from
+    available_margin * leverage instead. That second assignment had no
+    relationship to max_risk_usd, so true_max_loss routinely exceeded (often
+    2-3x'd) the intended 2% risk cap and sometimes DAILY_LOSS_LIMIT itself
+    on a single trade. Risk-based size is now the only source of truth for
+    size; leverage is *derived* from it and only ever gets capped DOWN
+    (shrinking size, never inflating it) when the pair's max_leverage can't
+    support the position at this margin allocation.
+    """
     MAX_RISK_PCT = 0.02  
     max_risk_usd = round(balance * MAX_RISK_PCT, 2)
     max_risk_usd = max(2.0, min(max_risk_usd, 6.0)) 
@@ -470,13 +481,20 @@ def calc_leverage_and_size(confidence, atr, price, balance, pair="ETH/USDT"):
     
     available_margin = balance * 0.12
     required_leverage = position_value / available_margin
-    
+
     rule = PAIR_RULES.get(pair, {"max_leverage": 40})
     max_lev = rule["max_leverage"]
-    leverage = int(max(5, min(required_leverage, max_lev)))
-    
-    size = (available_margin * leverage) / price
-    
+
+    if required_leverage > max_lev:
+        # This margin allocation can't fund the full risk-sized position at
+        # a legal leverage — shrink size (and therefore true risk) instead
+        # of silently taking on more leverage/risk than configured.
+        leverage = max_lev
+        max_position_value = available_margin * max_lev
+        size = max_position_value / price
+    else:
+        leverage = int(max(5, required_leverage))
+
     true_max_loss = round(size * sl_dist, 2)
     tp_dist = sl_dist * REWARD_TO_RISK
     exp_profit = round(size * tp_dist, 2)
@@ -513,12 +531,18 @@ def enter_trade(pair, direction, sl, tp, confidence, reasoning, trade_type, ai_e
             confidence, atr_val, price, paper_balance, pair
         )
 
-    if tp is None or sl is None:
+    sl_invalid = sl is None or (direction == "long" and sl >= price) or (direction == "short" and sl <= price)
+    tp_invalid = tp is None or (direction == "long" and tp <= price) or (direction == "short" and tp >= price)
+
+    if sl_invalid or tp_invalid:
+        write_thinking_log(
+            f"Invalid SL/TP from AI for {pair} {direction} "
+            f"(SL={sl}, TP={tp}, entry={price}) — discarding and using ATR-based levels instead."
+        )
         sl_dist = atr_val * 2.5
         tp_dist = sl_dist * REWARD_TO_RISK
         sl = round(price - sl_dist, 4) if direction == "long" else round(price + sl_dist, 4)
         tp = round(price + tp_dist, 4) if direction == "long" else round(price - tp_dist, 4)
-
     net_profit = exp_profit - fees
     if net_profit < 2.50:
         write_thinking_log(f"Sizing model rejected: expected reward too narrow: ${net_profit:.2f}.")
@@ -747,6 +771,21 @@ def run():
                         action = decision.get("action", "skip")
 
                         if action in ("long", "short") and pair not in open_positions:
+                            # ── FIX: min_confidence was defined per-pair in PAIR_RULES
+                            # but was never actually checked anywhere, so an 85%
+                            # threshold pair could still be entered on, e.g., a 40%
+                            # confidence call. Enforce it here, before any execution work.
+                            rule = PAIR_RULES.get(pair, {"min_confidence": 80})
+                            min_conf = rule.get("min_confidence", 80)
+                            confidence_val = int(decision.get("confidence", 0))
+                            if confidence_val < min_conf:
+                                print(f" ⚠️  {pair}: confidence {confidence_val}% below required {min_conf}% — skipping.")
+                                write_thinking_log(
+                                    f"Skipped {pair} {action}: confidence {confidence_val}% "
+                                    f"below pair minimum {min_conf}%."
+                                )
+                                continue
+
                             # ── RUN INTENT-DRIVEN LIQUIDITY & SPREAD SAFETY OVERLAYS ──
                             from liquidity_engine import LiquidityEngine
                             liq_engine = LiquidityEngine()

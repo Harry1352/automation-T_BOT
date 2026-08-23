@@ -8,13 +8,14 @@ from datetime import datetime, timedelta
 import requests
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+DIARY_DIR = os.path.join(ROOT, ".tess_diary")  # FIX: scanner.py writes all live state here now
 
-BALANCE_FILE = os.path.join(ROOT, "balance.json")
-POSITIONS_FILE = os.path.join(ROOT, "open_positions.json")
-LOG_FILE = os.path.join(ROOT, "trades.csv")
-PERF_FILE = os.path.join(ROOT, "performance.json")
-CONFIG_FILE = os.path.join(ROOT, "dynamic_config.json")
-THINKING_LOG = os.path.join(ROOT, "tess_thinking.log")
+BALANCE_FILE = os.path.join(DIARY_DIR, "balance.json")
+POSITIONS_FILE = os.path.join(DIARY_DIR, "open_positions.json")
+LOG_FILE = os.path.join(DIARY_DIR, "trades.csv")
+PERF_FILE = os.path.join(DIARY_DIR, "performance.json")
+CONFIG_FILE = os.path.join(DIARY_DIR, "dynamic_config.json")
+THINKING_LOG = os.path.join(DIARY_DIR, "tess_thinking.log")
 
 COIN_IDS = {
     "ETH/USDT": "ethereum",
