@@ -1,0 +1,66 @@
+# TESS Research Lab (TRL)
+
+> Autonomous Quantitative Strategy Research Engine for T_BOT
+
+TESS Research Lab (TRL) is a self-contained research environment designed to continuously discover, optimize, validate, and rank algorithmic trading strategies without interfering with the live T_BOT trading system.
+
+TRL serves as the research and development division of T_BOT.
+
+Instead of manually tweaking indicators and parameters, TRL automatically explores thousands of strategy combinations using historical market data, parameter optimization, and AI-assisted strategy generation.
+
+The objective is to continuously discover robust trading strategies that demonstrate strong performance across multiple market conditions before they are manually promoted into the live trading engine.
+
+---
+
+## Core Features
+
+- Continuous multi-day strategy research
+- Automatic historical market data downloading
+- Strategy parameter optimization
+- AI-assisted strategy generation
+- Walk-forward validation
+- Monte Carlo robustness testing
+- SQLite experiment database
+- Strategy leaderboard
+- Beautiful terminal dashboard
+- Export top-performing strategies into T_BOT
+
+---
+
+## Research Pipeline
+
+Market Data
+
+↓
+
+Generate Candidate Strategies
+
+↓
+
+Backtest
+
+↓
+
+Optimize Parameters
+
+↓
+
+Validate
+
+↓
+
+Rank
+
+↓
+
+Store Results
+
+↓
+
+Export Best Strategies
+
+---
+
+TRL never executes live trades.
+
+It is strictly a research environment.
